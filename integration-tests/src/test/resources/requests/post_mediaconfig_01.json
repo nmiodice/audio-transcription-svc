@@ -1,0 +1,5 @@
+{
+  "name":"integration-test-name",
+  "trackListEndpoint": "integration-test-endpoint",
+  "refreshInterval": 100
+}
