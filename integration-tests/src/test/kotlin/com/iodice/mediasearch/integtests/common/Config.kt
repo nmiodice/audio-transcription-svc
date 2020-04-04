@@ -6,9 +6,11 @@ fun getStringEnv(key: String) = requireNotNull(System.getenv(key)) {
 
 class Config {
     companion object {
-        val SERVICE_ENDPOINT: String
+        val SERVICE_ENDPOINT_BASE: String
             get() = "${getStringEnv("SERVICE_ENDPOINT")}/api/v1"
-        val SERVICE_ENDPOINT_MEDIACONFIG: String
-            get() = "$SERVICE_ENDPOINT/source/"
+
+        const val ROUTE_SOURCE = "source/"
+        const val ROUTE_INDEX_RESULT = "indexresult/"
+        const val ROUTE_MEDIA = "media/"
     }
 }

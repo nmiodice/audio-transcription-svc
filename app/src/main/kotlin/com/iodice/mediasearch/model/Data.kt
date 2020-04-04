@@ -13,9 +13,9 @@ data class Source (
         var refreshInterval: Long
 ): Entity
 
-data class MediaTrack(
+data class Media(
         override var id: String?,
-        var mediaSourceId: String,
+        var sourceId: String,
         var url: String,
         var title: String,
         var description: String,
@@ -23,9 +23,9 @@ data class MediaTrack(
         var publishedAt: Date
 ): Entity
 
-data class TrackIndex(
+data class IndexResult(
         override var id: String?,
-        var trackId: String,
+        var mediaId: String,
         var sourceId: String,     // unused?
         var status: IndexStatus,
         var resultsUrl: String

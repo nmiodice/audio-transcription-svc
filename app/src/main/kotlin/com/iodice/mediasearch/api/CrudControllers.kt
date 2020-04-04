@@ -1,6 +1,8 @@
 package com.iodice.mediasearch.api
 
 import com.iodice.mediasearch.model.Entity
+import com.iodice.mediasearch.model.IndexResult
+import com.iodice.mediasearch.model.Media
 import com.iodice.mediasearch.model.Source
 import com.iodice.mediasearch.repository.EntityRepository
 import com.iodice.mediasearch.repository.InMemoryEntityRepository
@@ -13,15 +15,23 @@ abstract class CrudBase<T: Entity> {
     private lateinit var repo: EntityRepository<T>
 
     @PostMapping("/")
-    fun postMedia(@RequestBody entity: T): T = repo.put(entity)
+    fun post(@RequestBody entity: T): T = repo.put(entity)
 
     @GetMapping("/{id}")
-    fun getMedia(@PathVariable id: String) = repo.get(id)
+    fun get(@PathVariable id: String) = repo.get(id)
 
     @DeleteMapping("/{id}")
-    fun deleteMedia(@PathVariable id: String) = repo.delete(id)
+    fun delete(@PathVariable id: String) = repo.delete(id)
 }
 
 @RestController
 @RequestMapping("source")
 class SourceCrud: CrudBase<Source>()
+
+@RestController
+@RequestMapping("media")
+class MediaCrud: CrudBase<Media>()
+
+@RestController
+@RequestMapping("indexresult")
+class IndexResultCrud: CrudBase<IndexResult>()
