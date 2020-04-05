@@ -34,6 +34,14 @@ class CosmosDBEntityRepository<T : Entity>(
         return entity
     }
 
+    override fun getIfExists(id: String): T? {
+        return try {
+            get(id)
+        } catch (e: NotFoundException) {
+            null
+        }
+    }
+
     override fun get(id: String): T {
         try {
             // note: the cosmos client does not enable configuration of the ObjectMapper used.

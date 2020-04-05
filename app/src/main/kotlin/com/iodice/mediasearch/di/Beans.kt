@@ -46,7 +46,6 @@ class Beans {
         Validate.notBlank(cosmosDatabase)
         Validate.notBlank(partitionKey)
         Validate.notBlank(containerName)
-        Validate.notNull(cosmosClient)
 
         fun ensureStartsWithSlash(s: String): String = if (s.startsWith("/")) s else "/$s"
         return cosmosClient
@@ -60,7 +59,6 @@ class Beans {
 
     @Bean
     fun sourceRepository(cosmosClient: CosmosClient): EntityRepository<Source> {
-        Validate.notNull(cosmosClient)
         return CosmosDBEntityRepository(
                 cosmosContainer(
                         Source::class.simpleName!!.toLowerCase(),
@@ -73,7 +71,6 @@ class Beans {
 
     @Bean
     fun mediaRepository(cosmosClient: CosmosClient): EntityRepository<Media> {
-        Validate.notNull(cosmosClient)
         return CosmosDBEntityRepository(
                 cosmosContainer(
                         Media::class.simpleName!!.toLowerCase(),
@@ -86,7 +83,6 @@ class Beans {
 
     @Bean
     fun indexRepository(cosmosClient: CosmosClient): EntityRepository<IndexResult> {
-        Validate.notNull(cosmosClient)
         return CosmosDBEntityRepository(
                 cosmosContainer(
                         IndexResult::class.simpleName!!.toLowerCase(),
