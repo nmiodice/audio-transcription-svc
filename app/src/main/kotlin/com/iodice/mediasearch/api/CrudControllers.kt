@@ -5,15 +5,13 @@ import com.iodice.mediasearch.model.IndexResult
 import com.iodice.mediasearch.model.Media
 import com.iodice.mediasearch.model.Source
 import com.iodice.mediasearch.repository.EntityRepository
-import com.iodice.mediasearch.repository.InMemoryEntityRepository
 import org.springframework.web.bind.annotation.*
 import javax.inject.Inject
 
 
-abstract class CrudBase<T: Entity> {
-    @Inject
-    private lateinit var repo: EntityRepository<T>
-
+abstract class CrudBase<T : Entity>(
+        private var repo: EntityRepository<T>
+) {
     @PostMapping("/")
     fun post(@RequestBody entity: T): T = repo.put(entity)
 
@@ -26,12 +24,18 @@ abstract class CrudBase<T: Entity> {
 
 @RestController
 @RequestMapping("source")
-class SourceCrud: CrudBase<Source>()
+class SourceCrud(
+        @Inject var repo: EntityRepository<Source>
+) : CrudBase<Source>(repo)
 
 @RestController
 @RequestMapping("media")
-class MediaCrud: CrudBase<Media>()
+class MediaCrud(
+        @Inject var repo: EntityRepository<Media>
+) : CrudBase<Media>(repo)
 
 @RestController
 @RequestMapping("indexresult")
-class IndexResultCrud: CrudBase<IndexResult>()
+class IndexResultCrud(
+        @Inject var repo: EntityRepository<IndexResult>
+) : CrudBase<IndexResult>(repo)

@@ -10,5 +10,5 @@ class MediaSearchApplication
 
 
 fun main(args: Array<String>) {
-	runApplication<MediaSearchApplication>(*args)
+    runApplication<MediaSearchApplication>(*args)
 }
