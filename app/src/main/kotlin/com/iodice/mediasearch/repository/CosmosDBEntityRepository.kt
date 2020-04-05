@@ -7,7 +7,6 @@ import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
-import com.iodice.mediasearch.model.Entity
 import com.iodice.mediasearch.model.EntityDocument
 import com.iodice.mediasearch.model.InternalServerError
 import com.iodice.mediasearch.model.NotFoundException

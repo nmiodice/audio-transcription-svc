@@ -6,7 +6,7 @@ interface Entity {
     var id: String?
 }
 
-interface EntityDocument<T: Entity> : Entity {
+interface EntityDocument<T : Entity> : Entity {
     var data: T
 }
 

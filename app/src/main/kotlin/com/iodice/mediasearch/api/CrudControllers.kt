@@ -13,7 +13,7 @@ class SourceCrud(
         @Inject var indexRepo: EntityRepository<IndexResultDocument>
 ) {
     @PostMapping("/")
-    fun postSource(@RequestBody source: Source):Source {
+    fun postSource(@RequestBody source: Source): Source {
         return sourceRepo.put(SourceDocument(
                 id = source.id,
                 data = source
@@ -31,10 +31,10 @@ class SourceCrud(
     }
 
     @PostMapping("/{sourceId}/media")
-    fun postMedia(@PathVariable sourceId: String, @RequestBody media: Media):Media {
+    fun postMedia(@PathVariable sourceId: String, @RequestBody media: Media): Media {
         // ensure referenced entities exists
         sourceRepo.get(sourceId)
-        return  mediaRepo.put(MediaDocument(
+        return mediaRepo.put(MediaDocument(
                 id = media.id,
                 sourceId = sourceId,
                 data = media
@@ -52,7 +52,7 @@ class SourceCrud(
     }
 
     @PostMapping("/{sourceId}/media/{mediaId}/indexresult")
-    fun postIndexResult(@PathVariable sourceId: String, @PathVariable mediaId: String, @RequestBody indexResult: IndexResult):IndexResult {
+    fun postIndexResult(@PathVariable sourceId: String, @PathVariable mediaId: String, @RequestBody indexResult: IndexResult): IndexResult {
         // ensure referenced entities exists
         sourceRepo.get(sourceId)
         mediaRepo.get(mediaId)

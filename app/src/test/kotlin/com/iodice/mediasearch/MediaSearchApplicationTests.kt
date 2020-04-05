@@ -4,8 +4,8 @@ import org.junit.jupiter.api.Test
 
 class MediaSearchApplicationTests {
 
-	@Test
-	fun contextLoads() {
-	}
+    @Test
+    fun contextLoads() {
+    }
 
 }
