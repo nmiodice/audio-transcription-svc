@@ -35,22 +35,22 @@ class CosmosDBEntityRepository<T : EntityDocument<*>>(
         return entity
     }
 
-    override fun getIfExists(id: String): T? {
+    override fun getIfExists(id: String, partitionKey: String): T? {
         return try {
-            get(id)
+            get(id, partitionKey)
         } catch (e: NotFoundException) {
             null
         }
     }
 
-    override fun get(id: String): T {
+    override fun get(id: String, partitionKey: String): T {
         try {
             // note: the cosmos client does not enable configuration of the ObjectMapper used.
             // Kotlin data classes require the following module to be registered. Because it is
             // not possible, we need this (unfortunate) workaround...
             //      https://github.com/FasterXML/jackson-module-kotlin
             val asJson = cosmosContainer
-                    .readItem(id, PartitionKey(id), JsonNode::class.java)
+                    .readItem(id, PartitionKey(partitionKey), JsonNode::class.java)
                     .resource
             return objectMapper.readValue(asJson.toString(), clazz)
         } catch (e: com.azure.cosmos.NotFoundException) {
@@ -60,7 +60,7 @@ class CosmosDBEntityRepository<T : EntityDocument<*>>(
         }
     }
 
-    override fun delete(id: String) {
-        cosmosContainer.deleteItem(id, PartitionKey(id), CosmosItemRequestOptions())
+    override fun delete(id: String, partitionKey: String) {
+        cosmosContainer.deleteItem(id, PartitionKey(partitionKey), CosmosItemRequestOptions())
     }
 }

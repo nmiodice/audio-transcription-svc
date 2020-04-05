@@ -22,18 +22,18 @@ class SourceCrud(
 
     @GetMapping("/{sourceId}")
     fun getSource(@PathVariable sourceId: String): Source {
-        return sourceRepo.get(sourceId).data
+        return sourceRepo.get(sourceId, sourceId).data
     }
 
     @DeleteMapping("/{sourceId}")
     fun deleteSource(@PathVariable sourceId: String) {
-        sourceRepo.delete(sourceId)
+        sourceRepo.delete(sourceId, sourceId)
     }
 
     @PostMapping("/{sourceId}/media")
     fun postMedia(@PathVariable sourceId: String, @RequestBody media: Media): Media {
         // ensure referenced entities exists
-        sourceRepo.get(sourceId)
+        sourceRepo.get(sourceId, sourceId)
         return mediaRepo.put(MediaDocument(
                 id = media.id,
                 sourceId = sourceId,
@@ -43,19 +43,19 @@ class SourceCrud(
 
     @GetMapping("/{sourceId}/media/{mediaId}")
     fun getMedia(@PathVariable sourceId: String, @PathVariable mediaId: String): Media {
-        return mediaRepo.get(mediaId).data
+        return mediaRepo.get(mediaId, sourceId).data
     }
 
     @DeleteMapping("/{sourceId}/media/{mediaId}")
     fun deleteMedia(@PathVariable sourceId: String, @PathVariable mediaId: String) {
-        mediaRepo.delete(mediaId)
+        mediaRepo.delete(mediaId, sourceId)
     }
 
     @PostMapping("/{sourceId}/media/{mediaId}/indexresult")
     fun postIndexResult(@PathVariable sourceId: String, @PathVariable mediaId: String, @RequestBody indexResult: IndexResult): IndexResult {
         // ensure referenced entities exists
-        sourceRepo.get(sourceId)
-        mediaRepo.get(mediaId)
+        sourceRepo.get(sourceId, sourceId)
+        mediaRepo.get(mediaId, sourceId)
 
         return indexRepo.put(IndexResultDocument(
                 id = indexResult.id,
@@ -66,67 +66,12 @@ class SourceCrud(
     }
 
     @GetMapping("/{sourceId}/media/{mediaId}/indexresult/{indexResultId}")
-    fun getIndexResult(@PathVariable sourceId: String, @PathVariable mediaId: String, @PathVariable indexResultId: String): IndexResult {
-        return indexRepo.get(indexResultId).data
+    fun getIndexResult(@PathVariable sourceId: String, @PathVariable indexResultId: String): IndexResult {
+        return indexRepo.get(indexResultId, sourceId).data
     }
 
     @DeleteMapping("/{sourceId}/media/{mediaId}/indexresult/{indexResultId}")
-    fun deleteIndexResult(@PathVariable sourceId: String, @PathVariable mediaId: String, @PathVariable indexResultId: String) {
-        indexRepo.delete(indexResultId)
+    fun deleteIndexResult(@PathVariable sourceId: String, @PathVariable indexResultId: String) {
+        indexRepo.delete(indexResultId, sourceId)
     }
 }
-
-//@RestController
-//@RequestMapping("media")
-//class MediaCrud(
-//        @Inject var sourceRepo: EntityRepository<Source>,
-//        @Inject var mediaRepo: EntityRepository<Media>){
-//
-//    @PostMapping("/")
-//    fun post(@RequestBody media: Media):Media {
-//        if (null == sourceRepo.getIfExists(media.sourceId)) {
-//            throw NotFoundException("The referenced source ${media.sourceId} does not exist")
-//        }
-//        return mediaRepo.put(media)
-//    }
-//
-//    @GetMapping("/{id}")
-//    fun get(@PathVariable id: String): Media {
-//        return mediaRepo.get(id)
-//    }
-//
-//    @DeleteMapping("/{id}")
-//    fun delete(@PathVariable id: String) {
-//        mediaRepo.delete(id)
-//    }
-//}
-
-//@RestController
-//@RequestMapping("indexresult")
-//class IndexResultCrud(
-//        @Inject var sourceRepo: EntityRepository<Source>,
-//        @Inject var mediaRepo: EntityRepository<Media>,
-//        @Inject var indexRepo: EntityRepository<IndexResult>){
-//
-//    @PostMapping("/")
-//    fun post(@RequestBody indexResult: IndexResult):IndexResult {
-//        if (null == sourceRepo.getIfExists(indexResult.sourceId)) {
-//            throw NotFoundException("The referenced source ${indexResult.sourceId} does not exist")
-//        }
-//
-//        if (null == mediaRepo.getIfExists(indexResult.mediaId)) {
-//            throw NotFoundException("The referenced media ${indexResult.mediaId} does not exist")
-//        }
-//        return indexRepo.put(indexResult)
-//    }
-//
-//    @GetMapping("/{id}")
-//    fun get(@PathVariable id: String): IndexResult {
-//        return indexRepo.get(id)
-//    }
-//
-//    @DeleteMapping("/{id}")
-//    fun delete(@PathVariable id: String) {
-//        indexRepo.delete(id)
-//    }
-//}

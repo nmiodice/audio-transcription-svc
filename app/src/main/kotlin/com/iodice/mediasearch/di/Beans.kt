@@ -73,7 +73,7 @@ class Beans {
                 cosmosContainer(
                         Media::class.simpleName!!.toLowerCase(),
                         cosmosClient,
-                        MediaDocument::id.name
+                        MediaDocument::sourceId.name
                 ),
                 MediaDocument::class.java
         )
@@ -85,7 +85,7 @@ class Beans {
                 cosmosContainer(
                         IndexResult::class.simpleName!!.toLowerCase(),
                         cosmosClient,
-                        IndexResultDocument::id.name
+                        IndexResultDocument::sourceId.name
                 ),
                 IndexResultDocument::class.java
         )
