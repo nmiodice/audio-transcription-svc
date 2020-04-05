@@ -8,11 +8,12 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.iodice.mediasearch.model.Entity
+import com.iodice.mediasearch.model.EntityDocument
 import com.iodice.mediasearch.model.InternalServerError
 import com.iodice.mediasearch.model.NotFoundException
 import java.util.*
 
-class CosmosDBEntityRepository<T : Entity>(
+class CosmosDBEntityRepository<T : EntityDocument<*>>(
         private var cosmosContainer: CosmosContainer,
         private var clazz: Class<T>,
         private var objectMapper: ObjectMapper = ObjectMapper().let {
@@ -26,6 +27,7 @@ class CosmosDBEntityRepository<T : Entity>(
         if (entity.id == null) {
             entity.id = UUID.randomUUID().toString()
         }
+        entity.data.id = entity.id
         try {
             cosmosContainer.upsertItem(entity)
         } catch (e: Exception) {

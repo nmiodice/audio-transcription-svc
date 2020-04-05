@@ -1,8 +1,8 @@
 package com.iodice.mediasearch.repository
 
-import com.iodice.mediasearch.model.Entity
+import com.iodice.mediasearch.model.EntityDocument
 
-interface EntityRepository<T : Entity> {
+interface EntityRepository<T : EntityDocument<*>> {
     fun put(entity: T): T
     fun getIfExists(id: String): T?
     fun get(id: String): T

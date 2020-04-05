@@ -24,17 +24,17 @@ enum class MediaAPITestConfig(
         val dependencies: List<MediaAPITestConfig>
 ) {
     API_SOURCE(
-            Config.ROUTE_SOURCE,
+            Config.ROUTE_PART_SOURCE,
             "requests/source_01.json",
             emptyList()
     ),
     API_MEDIA(
-            Config.ROUTE_MEDIA,
+            "${Config.ROUTE_PART_SOURCE}/integ_test_source_id_01/${Config.ROUTE_PART_MEDIA}",
             "requests/media_01.json",
             listOf(API_SOURCE)
     ),
     API_INDEX_REQUEST(
-        Config.ROUTE_INDEX_RESULT,
+        "${Config.ROUTE_PART_SOURCE}/integ_test_source_id_01/${Config.ROUTE_PART_MEDIA}/integ_test_media_id_01/${Config.ROUTE_PART_INDEX_RESULT}",
         "requests/index_result_01.json",
         listOf(API_SOURCE, API_MEDIA)
     ),

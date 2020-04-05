@@ -2,9 +2,7 @@ package com.iodice.mediasearch.di
 
 import com.azure.cosmos.CosmosClient
 import com.azure.cosmos.CosmosContainer
-import com.iodice.mediasearch.model.IndexResult
-import com.iodice.mediasearch.model.Media
-import com.iodice.mediasearch.model.Source
+import com.iodice.mediasearch.model.*
 import com.iodice.mediasearch.repository.CosmosDBEntityRepository
 import com.iodice.mediasearch.repository.EntityRepository
 import org.apache.commons.lang3.Validate
@@ -58,38 +56,38 @@ class Beans {
     }
 
     @Bean
-    fun sourceRepository(cosmosClient: CosmosClient): EntityRepository<Source> {
+    fun sourceRepository(cosmosClient: CosmosClient): EntityRepository<SourceDocument> {
         return CosmosDBEntityRepository(
                 cosmosContainer(
                         Source::class.simpleName!!.toLowerCase(),
                         cosmosClient,
-                        Source::id.name
+                        SourceDocument::id.name
                 ),
-                Source::class.java
+                SourceDocument::class.java
         )
     }
 
     @Bean
-    fun mediaRepository(cosmosClient: CosmosClient): EntityRepository<Media> {
+    fun mediaRepository(cosmosClient: CosmosClient): EntityRepository<MediaDocument> {
         return CosmosDBEntityRepository(
                 cosmosContainer(
                         Media::class.simpleName!!.toLowerCase(),
                         cosmosClient,
-                        Media::id.name
+                        MediaDocument::id.name
                 ),
-                Media::class.java
+                MediaDocument::class.java
         )
     }
 
     @Bean
-    fun indexRepository(cosmosClient: CosmosClient): EntityRepository<IndexResult> {
+    fun indexRepository(cosmosClient: CosmosClient): EntityRepository<IndexResultDocument> {
         return CosmosDBEntityRepository(
                 cosmosContainer(
                         IndexResult::class.simpleName!!.toLowerCase(),
                         cosmosClient,
-                        IndexResult::id.name
+                        IndexResultDocument::id.name
                 ),
-                IndexResult::class.java
+                IndexResultDocument::class.java
         )
     }
 }

@@ -9,8 +9,8 @@ class Config {
         val SERVICE_ENDPOINT_BASE: String
             get() = "${getStringEnv("SERVICE_ENDPOINT")}/api/v1"
 
-        const val ROUTE_SOURCE = "source/"
-        const val ROUTE_INDEX_RESULT = "indexresult/"
-        const val ROUTE_MEDIA = "media/"
+        const val ROUTE_PART_SOURCE = "source/"
+        const val ROUTE_PART_INDEX_RESULT = "indexresult/"
+        const val ROUTE_PART_MEDIA = "media/"
     }
 }

@@ -5,93 +5,128 @@ import com.iodice.mediasearch.repository.EntityRepository
 import org.springframework.web.bind.annotation.*
 import javax.inject.Inject
 
-
-open class CrudBase<T : Entity>(
-        private var repo: EntityRepository<T>
-) {
-    // a hook to execute logic before a POST
-    open fun beforePost(entity: T) {
-    }
-
-    // a hook to execute logic after a POST
-    open fun afterPost(entity: T) {
-    }
-
-    // a hook to execute logic before a GET
-    open fun beforeGet(id: String) {
-    }
-
-    // a hook to execute logic after a GET
-    open fun afterGet(entity: T) {
-    }
-
-    // a hook to execute logic before a DELETE
-    open fun beforeDelete(id: String) {
-    }
-
-    // a hook to execute logic after a DELETE
-    open fun afterDelete(id: String) {
-    }
-
-    @PostMapping("/")
-    fun post(@RequestBody entity: T): T {
-        beforePost(entity)
-        return repo.put(entity).let {
-            afterPost(it)
-            it
-        }
-    }
-
-    @GetMapping("/{id}")
-    fun get(@PathVariable id: String): T {
-        beforeGet(id)
-        return repo.get(id).let {
-            afterGet(it)
-            it
-        }
-    }
-
-    @DeleteMapping("/{id}")
-    fun delete(@PathVariable id: String) {
-        beforeDelete(id)
-        repo.delete(id)
-        afterDelete(id)
-    }
-}
-
 @RestController
 @RequestMapping("source")
 class SourceCrud(
-        @Inject var repo: EntityRepository<Source>
-) : CrudBase<Source>(repo)
+        @Inject var sourceRepo: EntityRepository<SourceDocument>,
+        @Inject var mediaRepo: EntityRepository<MediaDocument>,
+        @Inject var indexRepo: EntityRepository<IndexResultDocument>
+) {
+    @PostMapping("/")
+    fun postSource(@RequestBody source: Source):Source {
+        return sourceRepo.put(SourceDocument(
+                id = source.id,
+                data = source
+        )).data
+    }
 
-@RestController
-@RequestMapping("media")
-class MediaCrud(
-        @Inject var sourceRepo: EntityRepository<Source>,
-        @Inject var mediaRepo: EntityRepository<Media>
-) : CrudBase<Media>(mediaRepo) {
-    override fun beforePost(entity: Media) {
-        if (null == sourceRepo.getIfExists(entity.sourceId)) {
-            throw NotFoundException("The referenced source ${entity.sourceId} does not exist")
-        }
+    @GetMapping("/{sourceId}")
+    fun getSource(@PathVariable sourceId: String): Source {
+        return sourceRepo.get(sourceId).data
+    }
+
+    @DeleteMapping("/{sourceId}")
+    fun deleteSource(@PathVariable sourceId: String) {
+        sourceRepo.delete(sourceId)
+    }
+
+    @PostMapping("/{sourceId}/media")
+    fun postMedia(@PathVariable sourceId: String, @RequestBody media: Media):Media {
+        // ensure referenced entities exists
+        sourceRepo.get(sourceId)
+        return  mediaRepo.put(MediaDocument(
+                id = media.id,
+                sourceId = sourceId,
+                data = media
+        )).data
+    }
+
+    @GetMapping("/{sourceId}/media/{mediaId}")
+    fun getMedia(@PathVariable sourceId: String, @PathVariable mediaId: String): Media {
+        return mediaRepo.get(mediaId).data
+    }
+
+    @DeleteMapping("/{sourceId}/media/{mediaId}")
+    fun deleteMedia(@PathVariable sourceId: String, @PathVariable mediaId: String) {
+        mediaRepo.delete(mediaId)
+    }
+
+    @PostMapping("/{sourceId}/media/{mediaId}/indexresult")
+    fun postIndexResult(@PathVariable sourceId: String, @PathVariable mediaId: String, @RequestBody indexResult: IndexResult):IndexResult {
+        // ensure referenced entities exists
+        sourceRepo.get(sourceId)
+        mediaRepo.get(mediaId)
+
+        return indexRepo.put(IndexResultDocument(
+                id = indexResult.id,
+                mediaId = mediaId,
+                sourceId = sourceId,
+                data = indexResult
+        )).data
+    }
+
+    @GetMapping("/{sourceId}/media/{mediaId}/indexresult/{indexResultId}")
+    fun getIndexResult(@PathVariable sourceId: String, @PathVariable mediaId: String, @PathVariable indexResultId: String): IndexResult {
+        return indexRepo.get(indexResultId).data
+    }
+
+    @DeleteMapping("/{sourceId}/media/{mediaId}/indexresult/{indexResultId}")
+    fun deleteIndexResult(@PathVariable sourceId: String, @PathVariable mediaId: String, @PathVariable indexResultId: String) {
+        indexRepo.delete(indexResultId)
     }
 }
 
-@RestController
-@RequestMapping("indexresult")
-class IndexResultCrud(
-        @Inject var sourceRepo: EntityRepository<Source>,
-        @Inject var mediaRepo: EntityRepository<Media>,
-        @Inject var indexRepo: EntityRepository<IndexResult>
-) : CrudBase<IndexResult>(indexRepo) {
-    override fun beforePost(entity: IndexResult) {
-        if (null == sourceRepo.getIfExists(entity.sourceId)) {
-            throw NotFoundException("The referenced source ${entity.sourceId} does not exist")
-        }
+//@RestController
+//@RequestMapping("media")
+//class MediaCrud(
+//        @Inject var sourceRepo: EntityRepository<Source>,
+//        @Inject var mediaRepo: EntityRepository<Media>){
+//
+//    @PostMapping("/")
+//    fun post(@RequestBody media: Media):Media {
+//        if (null == sourceRepo.getIfExists(media.sourceId)) {
+//            throw NotFoundException("The referenced source ${media.sourceId} does not exist")
+//        }
+//        return mediaRepo.put(media)
+//    }
+//
+//    @GetMapping("/{id}")
+//    fun get(@PathVariable id: String): Media {
+//        return mediaRepo.get(id)
+//    }
+//
+//    @DeleteMapping("/{id}")
+//    fun delete(@PathVariable id: String) {
+//        mediaRepo.delete(id)
+//    }
+//}
 
-        if (null == mediaRepo.getIfExists(entity.mediaId)) {
-            throw NotFoundException("The referenced media ${entity.mediaId} does not exist")
-        }
-    }
-}
+//@RestController
+//@RequestMapping("indexresult")
+//class IndexResultCrud(
+//        @Inject var sourceRepo: EntityRepository<Source>,
+//        @Inject var mediaRepo: EntityRepository<Media>,
+//        @Inject var indexRepo: EntityRepository<IndexResult>){
+//
+//    @PostMapping("/")
+//    fun post(@RequestBody indexResult: IndexResult):IndexResult {
+//        if (null == sourceRepo.getIfExists(indexResult.sourceId)) {
+//            throw NotFoundException("The referenced source ${indexResult.sourceId} does not exist")
+//        }
+//
+//        if (null == mediaRepo.getIfExists(indexResult.mediaId)) {
+//            throw NotFoundException("The referenced media ${indexResult.mediaId} does not exist")
+//        }
+//        return indexRepo.put(indexResult)
+//    }
+//
+//    @GetMapping("/{id}")
+//    fun get(@PathVariable id: String): IndexResult {
+//        return indexRepo.get(id)
+//    }
+//
+//    @DeleteMapping("/{id}")
+//    fun delete(@PathVariable id: String) {
+//        indexRepo.delete(id)
+//    }
+//}
