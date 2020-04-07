@@ -2,18 +2,16 @@ package com.iodice.mediasearch.di
 
 import com.azure.cosmos.CosmosClient
 import com.azure.cosmos.CosmosContainer
-import com.google.common.util.concurrent.RateLimiter
 import com.iodice.mediasearch.model.*
 import com.iodice.mediasearch.repository.CosmosDBEntityRepository
 import com.iodice.mediasearch.repository.EntityRepository
-import com.iodice.mediasearch.repository.ThrottledCosmosDBEntityRepository
 import kong.unirest.Config
-import kong.unirest.Unirest
 import kong.unirest.UnirestInstance
 import org.apache.commons.lang3.Validate
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.stereotype.Component
+import javax.inject.Singleton
 
 @Component
 class Beans {
@@ -29,11 +27,9 @@ class Beans {
     @Value("\${AZ_COSMOS_DB}")
     lateinit var cosmosDatabase: String
 
-    @Value("\${azure.cosmos.requests_per_second}")
-    lateinit var cosmosRateLimit: Number
-
 
     @Bean
+    @Singleton
     fun cosmosClient(): CosmosClient {
         Validate.notBlank(cosmosEndpoint)
         Validate.notBlank(cosmosKey)
@@ -64,53 +60,45 @@ class Beans {
     }
 
     @Bean
-    fun rateLimiter() = RateLimiter.create(cosmosRateLimit.toDouble())
-
-    @Bean
-    fun sourceRepository(cosmosClient: CosmosClient, limiter: RateLimiter): EntityRepository<SourceDocument> {
-        return ThrottledCosmosDBEntityRepository(
-                CosmosDBEntityRepository(
-                    cosmosContainer(
-                            Source::class.simpleName!!.toLowerCase(),
-                            cosmosClient,
-                            SourceDocument::id.name
-                    ),
-                    SourceDocument::class.java
+    @Singleton
+    fun sourceRepository(cosmosClient: CosmosClient): EntityRepository<SourceDocument> {
+        return CosmosDBEntityRepository(
+                cosmosContainer(
+                        Source::class.simpleName!!.toLowerCase(),
+                        cosmosClient,
+                        SourceDocument::id.name
                 ),
-                limiter
+                SourceDocument::class.java
         )
     }
 
     @Bean
-    fun mediaRepository(cosmosClient: CosmosClient, limiter: RateLimiter): EntityRepository<MediaDocument> {
-        return ThrottledCosmosDBEntityRepository(
-                CosmosDBEntityRepository(
-                    cosmosContainer(
-                            Media::class.simpleName!!.toLowerCase(),
-                            cosmosClient,
-                            MediaDocument::sourceId.name
-                    ),
-                    MediaDocument::class.java
+    @Singleton
+    fun mediaRepository(cosmosClient: CosmosClient): EntityRepository<MediaDocument> {
+        return CosmosDBEntityRepository(
+                cosmosContainer(
+                        Media::class.simpleName!!.toLowerCase(),
+                        cosmosClient,
+                        MediaDocument::sourceId.name
                 ),
-                limiter
+                MediaDocument::class.java
         )
     }
 
     @Bean
-    fun indexRepository(cosmosClient: CosmosClient, limiter: RateLimiter): EntityRepository<IndexResultDocument> {
-        return ThrottledCosmosDBEntityRepository(
-                CosmosDBEntityRepository(
-                    cosmosContainer(
-                            IndexResult::class.simpleName!!.toLowerCase(),
-                            cosmosClient,
-                            IndexResultDocument::sourceId.name
-                    ),
-                    IndexResultDocument::class.java
+    @Singleton
+    fun indexRepository(cosmosClient: CosmosClient): EntityRepository<IndexStatusDocument> {
+        return CosmosDBEntityRepository(
+                cosmosContainer(
+                        IndexStatus::class.simpleName!!.toLowerCase(),
+                        cosmosClient,
+                        IndexStatusDocument::sourceIdIndexStatusCompositeKey.name
                 ),
-                limiter
+                IndexStatusDocument::class.java
         )
     }
 
     @Bean
+    @Singleton
     fun restClient() = UnirestInstance(Config())
 }

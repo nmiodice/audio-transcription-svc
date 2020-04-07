@@ -31,11 +31,6 @@ enum class MediaAPITestConfig(
             "requests/media_01.json",
             listOf(API_SOURCE)
     ),
-    API_INDEX_REQUEST(
-            "${Config.ROUTE_PART_SOURCE}/integ_test_source_id_01/${Config.ROUTE_PART_MEDIA}/integ_test_media_id_01/${Config.ROUTE_PART_INDEX_RESULT}",
-            "requests/index_result_01.json",
-            listOf(API_SOURCE, API_MEDIA)
-    ),
 }
 
 

@@ -36,19 +36,20 @@ data class MediaDocument(
         var sourceId: String
 ) : EntityDocument<Media>
 
-data class IndexResult(
+data class IndexStatus(
         override var id: String?,
-        var status: IndexStatus,
-        var resultsUrl: String
+        var state: IndexState,
+        var resultsUrl: String?
 ) : Entity
 
-data class IndexResultDocument(
+data class IndexStatusDocument(
         override var id: String?,
-        override var data: IndexResult,
+        override var data: IndexStatus,
         var mediaId: String,
-        var sourceId: String
-) : EntityDocument<IndexResult>
+        var mediaUrl: String,
+        var sourceIdIndexStatusCompositeKey: String
+) : EntityDocument<IndexStatus>
 
-enum class IndexStatus {
+enum class IndexState {
     NOT_STARTED, IN_PROGRESS, COMPLETED, FAILED, DOWNLOADING
 }

@@ -1,53 +1,21 @@
 package com.iodice.mediasearch.repository
 
-import com.azure.cosmos.CosmosContainer
-import com.azure.cosmos.CosmosItemRequestOptions
-import com.azure.cosmos.FeedOptions
-import com.azure.cosmos.PartitionKey
+import com.azure.cosmos.*
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
-import com.google.common.util.concurrent.RateLimiter
 import com.iodice.mediasearch.model.EntityDocument
 import com.iodice.mediasearch.model.InternalServerError
 import com.iodice.mediasearch.model.NotFoundException
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
-import java.lang.IllegalArgumentException
 import java.util.*
-import java.util.stream.StreamSupport
+import kotlin.math.pow
+import kotlin.random.Random
+import kotlin.reflect.KClass
 
-class ThrottledCosmosDBEntityRepository<T: EntityDocument<*>>(
-        private val repo: CosmosDBEntityRepository<T>,
-        private val rateLimiter: RateLimiter
-): EntityRepository<T> {
-    private var lastOperation = System.currentTimeMillis()
-    override fun put(entity: T): T {
-        rateLimiter.acquire()
-        return repo.put(entity)
-    }
-
-    override fun exists(id: String, partitionKey: String): Boolean {
-        rateLimiter.acquire()
-        return repo.exists(id, partitionKey)
-    }
-
-    override fun get(id: String, partitionKey: String): T {
-        rateLimiter.acquire()
-        return repo.get(id, partitionKey)
-    }
-
-    override fun getAll(): Iterator<T> {
-        rateLimiter.acquire()
-        return repo.getAll()
-    }
-
-    override fun delete(id: String, partitionKey: String) {
-        rateLimiter.acquire()
-        repo.delete(id, partitionKey)
-    }
-
-}
 
 class CosmosDBEntityRepository<T : EntityDocument<*>>(
         private val cosmosContainer: CosmosContainer,
@@ -71,7 +39,7 @@ class CosmosDBEntityRepository<T : EntityDocument<*>>(
         entity.data.id = entity.id
         try {
             logger.debug("Upsert for ${clazz.simpleName} with id=${entity.id}")
-            cosmosContainer.upsertItem(entity)
+            retry { cosmosContainer.upsertItem(entity) }
         } catch (e: Exception) {
             logger.warn("Upsert for ${clazz.simpleName} with id=${entity.id} failed due to $e")
             throw InternalServerError("Unknown error encountered inserting entity")
@@ -94,10 +62,12 @@ class CosmosDBEntityRepository<T : EntityDocument<*>>(
             // Kotlin data classes require the following module to be registered. Because it is
             // not possible, we need this (unfortunate) workaround...
             //      https://github.com/FasterXML/jackson-module-kotlin
-            val asJson = cosmosContainer
-                    .readItem(id, PartitionKey(partitionKey), JsonNode::class.java)
-                    .resource
-            return objectMapper.readValue(asJson.toString(), clazz)
+            return retry {
+                val asJson = cosmosContainer
+                        .readItem(id, PartitionKey(partitionKey), JsonNode::class.java)
+                        .resource
+                objectMapper.readValue(asJson.toString(), clazz)
+            }
         } catch (e: java.lang.Exception) {
             when (e) {
                 is com.azure.cosmos.NotFoundException, is IllegalArgumentException -> {
@@ -113,13 +83,45 @@ class CosmosDBEntityRepository<T : EntityDocument<*>>(
     }
 
     override fun getAll(): Iterator<T> {
-        return cosmosContainer.readAllItems(FeedOptions(), JsonNode::class.java)
-                .stream()
-                .map { objectMapper.readValue(it.toString(), clazz) }
-                .iterator()
+        return retry {
+            cosmosContainer.readAllItems(FeedOptions(), JsonNode::class.java)
+                    .stream()
+                    .map { objectMapper.readValue(it.toString(), clazz) }
+                    .iterator()
+        }
     }
 
     override fun delete(id: String, partitionKey: String) {
-        cosmosContainer.deleteItem(id, PartitionKey(partitionKey), CosmosItemRequestOptions())
+        retry { cosmosContainer.deleteItem(id, PartitionKey(partitionKey), CosmosItemRequestOptions()) }
+    }
+
+    private fun <T> retry(
+            maxAttempts: Int = 3,
+            initialDelayMillis: Double = 1.0,
+            retryOn: List<KClass<out Exception>> = listOf(RequestRateTooLargeException::class),
+            logic: () -> T
+    ): T {
+        if (maxAttempts <= 0) throw IllegalStateException("Cannot retry fewer than 1 times!")
+        var attempts = 0
+        var lastException: Exception? = null
+        while (attempts < maxAttempts) {
+            attempts += 1
+            try {
+                return logic()
+            } catch (e: Exception) {
+                when (e::class) {
+                    !in retryOn -> throw e
+                    else -> lastException = e
+                }
+            }
+            val delayFixedComponentMillis = initialDelayMillis * 2.0.pow(attempts.toDouble())
+            val delayRandomComponentMillis = Random.nextDouble(-0.1, 0.1) * delayFixedComponentMillis
+            val finalDelay = (delayFixedComponentMillis + delayRandomComponentMillis).toLong()
+            runBlocking {
+                logger.warn("Waiting for $finalDelay milliseconds to retry failed request")
+                delay(finalDelay)
+            }
+        }
+        throw lastException!!
     }
 }

@@ -10,7 +10,7 @@ import javax.inject.Inject
 class CrudController(
         @Inject var sourceRepo: EntityRepository<SourceDocument>,
         @Inject var mediaRepo: EntityRepository<MediaDocument>,
-        @Inject var indexRepo: EntityRepository<IndexResultDocument>
+        @Inject var indexRepo: EntityRepository<IndexStatusDocument>
 ) {
     @PostMapping("/")
     fun postSource(@RequestBody source: Source): Source {
@@ -49,29 +49,5 @@ class CrudController(
     @DeleteMapping("/{sourceId}/media/{mediaId}")
     fun deleteMedia(@PathVariable sourceId: String, @PathVariable mediaId: String) {
         mediaRepo.delete(mediaId, sourceId)
-    }
-
-    @PostMapping("/{sourceId}/media/{mediaId}/indexresult")
-    fun postIndexResult(@PathVariable sourceId: String, @PathVariable mediaId: String, @RequestBody indexResult: IndexResult): IndexResult {
-        // ensure referenced entities exists
-        sourceRepo.get(sourceId, sourceId)
-        mediaRepo.get(mediaId, sourceId)
-
-        return indexRepo.put(IndexResultDocument(
-                id = indexResult.id,
-                mediaId = mediaId,
-                sourceId = sourceId,
-                data = indexResult
-        )).data
-    }
-
-    @GetMapping("/{sourceId}/media/{mediaId}/indexresult/{indexResultId}")
-    fun getIndexResult(@PathVariable sourceId: String, @PathVariable indexResultId: String): IndexResult {
-        return indexRepo.get(indexResultId, sourceId).data
-    }
-
-    @DeleteMapping("/{sourceId}/media/{mediaId}/indexresult/{indexResultId}")
-    fun deleteIndexResult(@PathVariable sourceId: String, @PathVariable indexResultId: String) {
-        indexRepo.delete(indexResultId, sourceId)
     }
 }

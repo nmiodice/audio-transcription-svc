@@ -52,11 +52,6 @@
             <artifactId>unirest-java</artifactId>
             <version>3.7.00</version>
         </dependency>
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <version>28.2-jre</version>
-        </dependency>
 
 
         <!-- Azure Dependencies-->
