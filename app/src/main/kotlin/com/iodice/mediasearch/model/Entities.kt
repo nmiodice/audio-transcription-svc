@@ -13,8 +13,7 @@ interface EntityDocument<T : Entity> : Entity {
 data class Source(
         override var id: String?,
         var name: String,
-        var trackListEndpoint: String,
-        var refreshInterval: Long
+        var trackListEndpoint: String
 ) : Entity
 
 data class SourceDocument(

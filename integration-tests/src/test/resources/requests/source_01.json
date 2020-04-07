@@ -1,6 +1,5 @@
 {
   "id": "integ_test_source_id_01",
   "name": "integ_test_source_name_01",
-  "trackListEndpoint": "integ_test_source_endpoint_01",
-  "refreshInterval": 100
+  "trackListEndpoint": "integ_test_source_endpoint_01"
 }

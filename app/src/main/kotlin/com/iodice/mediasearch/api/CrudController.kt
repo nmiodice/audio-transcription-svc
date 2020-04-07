@@ -7,7 +7,7 @@ import javax.inject.Inject
 
 @RestController
 @RequestMapping("source")
-class SourceCrud(
+class CrudController(
         @Inject var sourceRepo: EntityRepository<SourceDocument>,
         @Inject var mediaRepo: EntityRepository<MediaDocument>,
         @Inject var indexRepo: EntityRepository<IndexResultDocument>
