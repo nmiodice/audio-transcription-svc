@@ -5,6 +5,7 @@ curl -s -X POST "$SERVICE_ENDPOINT/api/v1/source/" \
   --data-binary @- << EOF
 {
   "name": "MTB Radio",
-  "trackListEndpoint": "https://hubhopper.com/api/podcasts/166203/episodes?order=newest&pageSize=100"
+  "trackListEndpoint": "https://hubhopper.com/api/podcasts/166203/episodes?order=newest&pageSize=100",
+  "trackListIsSorted": true
 }
 

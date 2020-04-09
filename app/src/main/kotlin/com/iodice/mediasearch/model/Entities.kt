@@ -13,7 +13,8 @@ interface EntityDocument<T : Entity> : Entity {
 data class Source(
         override var id: String?,
         var name: String,
-        var trackListEndpoint: String
+        var trackListEndpoint: String,
+        var trackListIsSorted: Boolean
 ) : Entity
 
 data class SourceDocument(

@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.util.*
+import java.util.stream.Collectors
 import java.util.stream.StreamSupport
 import javax.inject.Inject
 import kotlin.system.measureTimeMillis
@@ -45,16 +46,23 @@ class MediaRefreshService(
         try {
             val elapsedMillis = measureTimeMillis {
                 logger.info("Refreshing ${source.name} with endpoint ${source.trackListEndpoint}")
-                var page = 0
+                var pageNum = 0
                 while (true) {
-                    page += 1
-                    val response = restClient.get("${source.trackListEndpoint}&page=$page")
-                            .header("accept", "application/json")
-                            .asJson()
-                            .body
-                            .`object`
-                    processPage(response, source)
-                    if (page == response.getInt("noOfPages")) {
+                    pageNum += 1
+                    val pageResponse = getPage(source, pageNum)
+                    val docs = getMediaFromPage(pageResponse, source)
+                    val allWereNew = saveNew(docs)
+
+                    // if not all of the tracks were new AND the track listing endpoint returns sorted results,
+                    // then we can exit early because we can safely say that all future documents will already
+                    // be stored
+                    if (!allWereNew && source.trackListIsSorted) {
+                        logger.info("Exiting refresh loop early for ${source.trackListEndpoint} due to tracks sorted condition")
+                        return
+                    }
+
+                    // if we are at the end of the results, then we can return because there are no more pages
+                    if (pageNum == pageResponse.getInt("noOfPages")) {
                         break
                     }
                 }
@@ -65,17 +73,17 @@ class MediaRefreshService(
         }
     }
 
-    private fun processPage(results: JSONObject, source: Source) {
-        val docs = getMediaFromPage(results, source)
-        saveNew(docs)
-    }
+    private fun getPage(source: Source, page: Int) = restClient.get("${source.trackListEndpoint}&page=$page")
+            .header("accept", "application/json")
+            .asJson()
+            .body
+            .`object`
 
     private fun getMediaFromPage(results: JSONObject, source: Source): Iterable<MediaDocument> = results.getJSONArray("episodes").map {
         val episode = it as JSONObject
         val url = episode.getJSONObject("play").getString("url")
 
-        // this removes any illegal characters while preserving the uniqueness
-        // per URL
+        // this removes any illegal characters while preserving the uniqueness per URL
         val id = Base64.getEncoder().encodeToString(url.toByteArray())
         MediaDocument(
                 id = id,
@@ -91,21 +99,41 @@ class MediaRefreshService(
         )
     }
 
-    private fun saveNew(docs: Iterable<MediaDocument>) = StreamSupport.stream(docs.spliterator(), true).forEach {
-        if (!mediaRepo.exists(it.id!!, it.sourceId)) {
-            mediaRepo.put(it)
-            val status = IndexStatus(
-                    id = null,
-                    state = IndexState.NOT_STARTED,
-                    resultsUrl = null
-            )
-            indexRepo.put(IndexStatusDocument(
-                    id = null,
-                    sourceIdIndexStatusCompositeKey = "${it.sourceId}:${status.state}",
-                    mediaId = it.id!!,
-                    mediaUrl = it.data.url,
-                    data = status
-            ))
+    /**
+     * Returns true if all of the documents were saved
+     */
+    private fun saveNew(docs: Iterable<MediaDocument>): Boolean {
+        return StreamSupport.stream(docs.spliterator(), true)
+                .map { saveNew(it) }
+                // this makes sure that all parallel stream operations were completed before checking `allMatch`,
+                // which would otherwise return false on the first non-true result found even if not all entries
+                // from the original stream have been processed.
+                .collect(Collectors.toList())
+                .stream()
+                .allMatch{ it == true}
+    }
+
+    /**
+     * Returns true if the document was saved
+     */
+    private fun saveNew(doc: MediaDocument): Boolean {
+        if (mediaRepo.exists(doc.id!!, doc.sourceId)) {
+            return false
         }
+        mediaRepo.put(doc)
+        val status = IndexStatus(
+                id = null,
+                state = IndexState.NOT_STARTED,
+                resultsUrl = null
+        )
+        indexRepo.put(IndexStatusDocument(
+                id = null,
+                sourceIdIndexStatusCompositeKey = "${doc.sourceId}:${status.state}",
+                mediaId = doc.id!!,
+                mediaUrl = doc.data.url,
+                data = status
+        ))
+
+        return true
     }
 }
