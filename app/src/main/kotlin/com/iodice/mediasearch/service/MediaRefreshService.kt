@@ -79,25 +79,33 @@ class MediaRefreshService(
             .body
             .`object`
 
-    private fun getMediaFromPage(results: JSONObject, source: Source): Iterable<MediaDocument> = results.getJSONArray("episodes").map {
-        val episode = it as JSONObject
-        val url = episode.getJSONObject("play").getString("url")
+    private fun getMediaFromPage(results: JSONObject, source: Source): Iterable<MediaDocument> =
+            results.getJSONArray("episodes").mapNotNull {
+                val episode = it as JSONObject
+                val url = episode.getJSONObject("play").getString("url")
 
-        // this removes any illegal characters while preserving the uniqueness per URL
-        val id = Base64.getEncoder().encodeToString(url.toByteArray())
-        MediaDocument(
-                id = id,
-                sourceId = source.id!!,
-                data = Media(
-                        id = id,
-                        url = url,
-                        title = episode.getString("title"),
-                        description = episode.getString("description"),
-                        image = episode.getString("image"),
-                        publishedAt = Date(episode.getLong("publishedOn"))
-                )
-        )
-    }
+                // this removes any illegal characters while preserving the uniqueness per URL
+                val id = Base64.getEncoder().encodeToString(url.toByteArray())
+                val title = episode.getString("title")
+
+                if (source.titleFilter != null && !title.toLowerCase().contains(source.titleFilter!!.toLowerCase())) {
+                    logger.info("Filtered `$title` due to title filter of `${source.titleFilter}`")
+                    null
+                } else {
+                    MediaDocument(
+                            id = id,
+                            sourceId = source.id!!,
+                            data = Media(
+                                    id = id,
+                                    url = url,
+                                    title = title,
+                                    description = episode.getString("description"),
+                                    image = episode.getString("image"),
+                                    publishedAt = Date(episode.getLong("publishedOn"))
+                            )
+                    )
+                }
+            }
 
     /**
      * Returns true if all of the documents were saved
@@ -110,7 +118,7 @@ class MediaRefreshService(
                 // from the original stream have been processed.
                 .collect(Collectors.toList())
                 .stream()
-                .allMatch{ it == true}
+                .allMatch { it == true }
     }
 
     /**
@@ -128,7 +136,8 @@ class MediaRefreshService(
         )
         indexRepo.put(IndexStatusDocument(
                 id = null,
-                sourceIdIndexStatusCompositeKey = "${doc.sourceId}:${status.state}",
+                sourceIdIndexStatusCompositeKey = null, // repository will fix this in the PUT call
+                sourceId = doc.sourceId,
                 mediaId = doc.id!!,
                 mediaUrl = doc.data.url,
                 data = status

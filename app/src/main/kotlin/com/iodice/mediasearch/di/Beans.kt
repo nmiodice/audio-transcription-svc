@@ -2,6 +2,8 @@ package com.iodice.mediasearch.di
 
 import com.azure.cosmos.CosmosClient
 import com.azure.cosmos.CosmosContainer
+import com.azure.storage.blob.BlobContainerClient
+import com.azure.storage.blob.BlobContainerClientBuilder
 import com.iodice.mediasearch.model.*
 import com.iodice.mediasearch.repository.CosmosDBEntityRepository
 import com.iodice.mediasearch.repository.EntityRepository
@@ -11,10 +13,15 @@ import org.apache.commons.lang3.Validate
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.stereotype.Component
+import javax.inject.Named
 import javax.inject.Singleton
 
 @Component
 class Beans {
+    companion object {
+        const val RAW_MEDIA_CONTAINER = "RAW_MEDIA_CONTAINER"
+    }
+
     // TODO: pull from KeyVault
     @Value("\${AZ_COSMOS_KEY}")
     lateinit var cosmosKey: String
@@ -26,6 +33,14 @@ class Beans {
     // TODO: pull from KeyVault
     @Value("\${AZ_COSMOS_DB}")
     lateinit var cosmosDatabase: String
+
+    // TODO: pull from KeyVault
+    @Value("\${AZ_MEDIA_STORAGE_CONTAINER}")
+    lateinit var mediaStorageContainer: String
+
+    // TODO: pull from KeyVault
+    @Value("\${AZ_STORAGE_CONNECTION_STRING}")
+    lateinit var storageConnectionString: String
 
 
     @Bean
@@ -94,11 +109,24 @@ class Beans {
                         cosmosClient,
                         IndexStatusDocument::sourceIdIndexStatusCompositeKey.name
                 ),
-                IndexStatusDocument::class.java
+                IndexStatusDocument::class.java,
+                onBeforePut = {
+                    it.sourceIdIndexStatusCompositeKey = "${it.sourceId}:${it.data.state}"
+                }
         )
     }
 
     @Bean
     @Singleton
     fun restClient() = UnirestInstance(Config())
+
+    @Bean
+    @Named(RAW_MEDIA_CONTAINER)
+    @Singleton
+    fun mediaStorageContainer(): BlobContainerClient {
+        return BlobContainerClientBuilder()
+                .connectionString(storageConnectionString)
+                .containerName(mediaStorageContainer)
+                .buildClient()
+    }
 }

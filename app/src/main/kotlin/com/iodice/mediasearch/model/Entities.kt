@@ -14,7 +14,8 @@ data class Source(
         override var id: String?,
         var name: String,
         var trackListEndpoint: String,
-        var trackListIsSorted: Boolean
+        var trackListIsSorted: Boolean,
+        var titleFilter: String?
 ) : Entity
 
 data class SourceDocument(
@@ -46,11 +47,12 @@ data class IndexStatus(
 data class IndexStatusDocument(
         override var id: String?,
         override var data: IndexStatus,
+        var sourceId: String,
         var mediaId: String,
         var mediaUrl: String,
-        var sourceIdIndexStatusCompositeKey: String
+        var sourceIdIndexStatusCompositeKey: String?
 ) : EntityDocument<IndexStatus>
 
 enum class IndexState {
-    NOT_STARTED, IN_PROGRESS, COMPLETED, FAILED, DOWNLOADING
+    NOT_STARTED, CONTENT_UPLOADED
 }

@@ -52,6 +52,11 @@
             <artifactId>unirest-java</artifactId>
             <version>3.7.00</version>
         </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-xml</artifactId>
+            <version>2.10.1</version>
+        </dependency>
 
 
         <!-- Azure Dependencies-->
@@ -59,6 +64,11 @@
             <groupId>com.azure</groupId>
             <artifactId>azure-cosmos</artifactId>
             <version>4.0.0-preview.2</version>
+        </dependency>
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-storage-blob</artifactId>
+            <version>12.3.0</version>
         </dependency>
 
         <dependency>
@@ -82,6 +92,24 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
+            <plugin>
+                <groupId>io.swagger</groupId>
+                <artifactId>swagger-codegen-maven-plugin</artifactId>
+                <version>2.3.1</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <inputSpec>${project.basedir}/vendor/microsoft/cognitive_services_speech_swagger.yaml
+                            </inputSpec>
+                            <language>kotlin</language>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
             <plugin>
                 <groupId>org.jetbrains.kotlin</groupId>
                 <artifactId>kotlin-maven-plugin</artifactId>

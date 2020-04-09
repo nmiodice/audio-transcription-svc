@@ -7,5 +7,6 @@ interface EntityRepository<T : EntityDocument<*>> {
     fun exists(id: String, partitionKey: String): Boolean
     fun get(id: String, partitionKey: String): T
     fun getAll(): Iterator<T>
+    fun getAllWithPartitionKey(partitionKey: String): Iterator<T>
     fun delete(id: String, partitionKey: String)
 }

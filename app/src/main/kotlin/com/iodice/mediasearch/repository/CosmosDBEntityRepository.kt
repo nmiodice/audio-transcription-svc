@@ -20,6 +20,7 @@ import kotlin.reflect.KClass
 class CosmosDBEntityRepository<T : EntityDocument<*>>(
         private val cosmosContainer: CosmosContainer,
         private val clazz: Class<T>,
+        private val onBeforePut: (T) -> Unit = { _ -> Unit },
         private val objectMapper: ObjectMapper = ObjectMapper().let {
             it.registerModule(KotlinModule())
             it.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
@@ -32,11 +33,15 @@ class CosmosDBEntityRepository<T : EntityDocument<*>>(
         private val logger = LoggerFactory.getLogger(javaClass.enclosingClass)
     }
 
+    private var partitionKeyProperty: String? = null
+
     override fun put(entity: T): T {
         if (entity.id == null) {
             entity.id = UUID.randomUUID().toString()
         }
         entity.data.id = entity.id
+
+        onBeforePut(entity)
         try {
             logger.debug("Upsert for ${clazz.simpleName} with id=${entity.id}")
             retry { cosmosContainer.upsertItem(entity) }
@@ -90,6 +95,37 @@ class CosmosDBEntityRepository<T : EntityDocument<*>>(
                     .iterator()
         }
     }
+
+    override fun getAllWithPartitionKey(partitionKey: String): Iterator<T> {
+        val query = SqlQuerySpec(
+                "SELECT * FROM c WHERE c.${getPartitionKeyPath()} = @pk",
+                SqlParameterList(SqlParameter("@pk", partitionKey)))
+        return retry {
+            // note: the cosmos client does not enable configuration of the ObjectMapper used.
+            // Kotlin data classes require the following module to be registered. Because it is
+            // not possible, we need this (unfortunate) workaround...
+            //      https://github.com/FasterXML/jackson-module-kotlin
+            cosmosContainer
+                    .queryItems(query, FeedOptions(), JsonNode::class.java)
+                    .map { objectMapper.readValue(it.toString(), clazz) }
+                    .iterator()
+        }
+    }
+
+    private fun getPartitionKeyPath(): String {
+        if (partitionKeyProperty != null) {
+            return partitionKeyProperty!!
+        }
+
+        partitionKeyProperty = cosmosContainer
+                .read()
+                .properties
+                .partitionKeyDefinition
+                .paths.joinToString(".") { it.removePrefix("/") }
+        logger.info("Found partition key path $partitionKeyProperty for type $clazz")
+        return partitionKeyProperty!!
+    }
+
 
     override fun delete(id: String, partitionKey: String) {
         retry { cosmosContainer.deleteItem(id, PartitionKey(partitionKey), CosmosItemRequestOptions()) }
