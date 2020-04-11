@@ -3,7 +3,7 @@ package com.iodice.mediasearch.service
 import com.azure.storage.blob.BlobContainerClient
 import com.azure.storage.blob.sas.BlobSasPermission
 import com.azure.storage.blob.sas.BlobServiceSasSignatureValues
-import com.iodice.gen.azure.speech.model.TranscriptionDefinition
+import com.iodice.mediasearch.client.*
 import com.iodice.mediasearch.di.Beans
 import com.iodice.mediasearch.model.IndexState
 import com.iodice.mediasearch.model.IndexStatusDocument
@@ -14,8 +14,6 @@ import kong.unirest.UnirestInstance
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
-import java.lang.Exception
-import java.net.HttpURLConnection
 import java.time.OffsetDateTime
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
@@ -23,14 +21,14 @@ import java.util.stream.Collectors
 import javax.inject.Inject
 import javax.inject.Named
 
+
 @Component
 class IndexingService(
         @Inject private val sourceRepo: EntityRepository<SourceDocument>,
         @Inject private val indexRepo: EntityRepository<IndexStatusDocument>,
         @Inject private val restClient: UnirestInstance,
-        @Inject @Named(Beans.RAW_MEDIA_CONTAINER) private val blobClient: BlobContainerClient,
-        @Inject @Named(Beans.STT_API_KEY) private val sttApiKey: String,
-        @Inject @Named(Beans.STT_API_ENDPOINT) private val sttApiEndpoint: String
+        @Inject private val sttClient: STTClient,
+        @Inject @Named(Beans.RAW_MEDIA_CONTAINER) private val blobClient: BlobContainerClient
 ) {
     companion object {
         @Suppress("JAVA_CLASS_ON_COMPANION")
@@ -48,6 +46,11 @@ class IndexingService(
     @Scheduled(fixedDelayString = "\${service.index.refresh.delay_millis}", initialDelay = 0)
     fun submitSpeechToTextTask() {
         applyToIndexesInState("submit speech to text", IndexState.CONTENT_UPLOADED, ::submitSpeechToText)
+    }
+
+    @Scheduled(fixedDelayString = "\${service.index.refresh.delay_millis}", initialDelay = 0)
+    fun checkSpeechToTextTask() {
+        applyToIndexesInState("check speech to text status", IndexState.STT_IN_PROGRESS, ::checkSpeechToText)
     }
 
     private fun applyToIndexesInState(
@@ -80,41 +83,23 @@ class IndexingService(
     fun submitSpeechToText(source: SourceDocument, indexStatusDocument: IndexStatusDocument): IndexState {
         logger.info("Submitting speech to text for index ${indexStatusDocument.id}")
         return try {
-            val accessUrl = getAccessUrl(indexStatusDocument)
-            val request = TranscriptionDefinition(
-                    recordingsUrl = accessUrl,
-                    name = indexStatusDocument.id!!,
-                    locale = "en-US")
-            val response = restClient.post(sttApiEndpoint)
-                    .header("content-type", "application/json")
-                    .header("Ocp-Apim-Subscription-Key", sttApiKey)
-                    .body(request)
-                    .asJson()
-
-            val status = response.status
-            val body = response.body
-            val location = response.headers.getFirst("location")
-            indexStatusDocument.data.resultsUrl = location
-
-            logger.info("Got HTTP $status with location of $location for index ${indexStatusDocument.id}. Response was $body")
-            when (status) {
-                HttpURLConnection.HTTP_OK, HttpURLConnection.HTTP_ACCEPTED, HttpURLConnection.HTTP_CREATED -> IndexState.STT_IN_PROGRESS
-                else -> IndexState.STT_SUBMISSION_FAILED
-            }
+            indexStatusDocument.data.sttCallbackUrl = sttClient.submitAsync(
+                    getAccessUrl(indexStatusDocument),
+                    indexStatusDocument.id!!)
+            IndexState.STT_IN_PROGRESS
         } catch (e: Exception) {
-            logger.info("Speech to text submission for index ${indexStatusDocument.id} failed!")
+            logger.info("STT submission for ${indexStatusDocument.id} failed: $e")
             IndexState.STT_SUBMISSION_FAILED
         }
     }
 
     fun getAccessUrl(indexStatusDocument: IndexStatusDocument): String {
-        val blobName = indexStatusDocument.data.uploadUrl!!.replace(blobClient.blobContainerUrl, "").replace("/", "")
+        val blobName = indexStatusDocument.data.mediaUploadUrl!!.replace(blobClient.blobContainerUrl, "").replaceFirst("/", "")
         val sas = blobClient.getBlobClient(blobName)
                 .generateSas(BlobServiceSasSignatureValues(
                         OffsetDateTime.now().plusHours(10),
-                        BlobSasPermission().setReadPermission(true)
-                ))
-        return "${indexStatusDocument.data.uploadUrl}?$sas"
+                        BlobSasPermission().setReadPermission(true)))
+        return "${indexStatusDocument.data.mediaUploadUrl}?$sas"
     }
 
     fun uploadMedia(source: SourceDocument, indexStatusDocument: IndexStatusDocument): IndexState {
@@ -124,13 +109,13 @@ class IndexingService(
                     .thenConsume {
                         val lengthAsString = it.headers.getFirst("Content-Length")
                         logger.info("Found $lengthAsString bytes for index status ${indexStatusDocument.id} (source: ${source.id})")
-                        val name = "${source.id}:${indexStatusDocument.id}"
+                        val name = "${source.id}/${indexStatusDocument.id}"
                         blobClient.getBlobClient(name)
                                 .blockBlobClient
                                 .upload(it.content, lengthAsString.toLong(), true)
 
                         val uploadUrl = blobClient.blobContainerUrl + "/" + name
-                        indexStatusDocument.data.uploadUrl = uploadUrl
+                        indexStatusDocument.data.mediaUploadUrl = uploadUrl
                     }
             logger.info("Upload complete for index status ${indexStatusDocument.id} (source: ${source.id})")
             IndexState.CONTENT_UPLOADED
@@ -138,7 +123,48 @@ class IndexingService(
             logger.info("Unable to upload for index status ${indexStatusDocument.id} (source: ${source.id}), $e")
             IndexState.CONTENT_UPLOADED_ERROR
         }
+    }
 
+    fun checkSpeechToText(source: SourceDocument, indexStatusDocument: IndexStatusDocument): IndexState? {
+        val status: STTStatus?
+        try {
+            status = sttClient.checkStatus(indexStatusDocument.data.sttCallbackUrl!!)
+        } catch (e: Exception) {
+            logger.warn("Unexpected error processing STT results for ${indexStatusDocument.id}. Error was $e")
+            return null
+        }
+
+        when (status) {
+            is STTFailed -> {
+                logger.warn("STT job for ${indexStatusDocument.id} failed: ${status.message}")
+                return IndexState.STT_JOB_FAILED
+            }
+            is STTInProgress -> {
+                logger.debug("STT job for ${indexStatusDocument.id} is still in progress")
+                return null
+            }
+            !is STTSuccess -> {
+                logger.warn("STT job for ${indexStatusDocument.id} has unknown status! $status")
+                return null
+            }
+        }
+
+        // the results represent different channels, so any are OK
+        val resultsUrl = (status as STTSuccess).resultsUrls.first()
+        restClient.get(resultsUrl)
+                .header("content-type", "application/json")
+                .thenConsume {
+                    val lengthAsString = it.headers.getFirst("Content-Length")
+                    logger.info("Found $lengthAsString bytes for index status ${indexStatusDocument.id} (source: ${source.id})")
+                    val name = "${source.id}/${indexStatusDocument.id}/sttResults.json"
+                    blobClient.getBlobClient(name)
+                            .blockBlobClient
+                            .upload(it.content, lengthAsString.toLong(), true)
+                    val uploadUrl = blobClient.blobContainerUrl + "/" + name
+                    indexStatusDocument.data.sttResultsUpload = uploadUrl
+                }
+
+        return IndexState.STT_FINISHED
     }
 
     fun setIndexingState(indexStatusDocument: IndexStatusDocument, state: IndexState) {

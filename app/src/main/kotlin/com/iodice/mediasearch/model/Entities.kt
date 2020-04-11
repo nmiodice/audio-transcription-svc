@@ -41,8 +41,9 @@ data class MediaDocument(
 data class IndexStatus(
         override var id: String? = null,
         var state: IndexState,
-        var resultsUrl: String? = null,
-        var uploadUrl: String? = null
+        var sttCallbackUrl: String? = null,
+        var sttResultsUpload: String? = null,
+        var mediaUploadUrl: String? = null
 ) : Entity
 
 data class IndexStatusDocument(
@@ -55,5 +56,11 @@ data class IndexStatusDocument(
 ) : EntityDocument<IndexStatus>
 
 enum class IndexState {
-    NOT_STARTED, CONTENT_UPLOADED, CONTENT_UPLOADED_ERROR, STT_IN_PROGRESS, STT_SUBMISSION_FAILED
+    NOT_STARTED,
+    CONTENT_UPLOADED,
+    CONTENT_UPLOADED_ERROR,
+    STT_IN_PROGRESS,
+    STT_SUBMISSION_FAILED,
+    STT_JOB_FAILED,
+    STT_FINISHED
 }
