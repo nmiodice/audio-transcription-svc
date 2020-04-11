@@ -2,6 +2,7 @@ package com.iodice.mediasearch.service
 
 import com.iodice.mediasearch.model.*
 import com.iodice.mediasearch.repository.EntityRepository
+import com.iodice.mediasearch.util.stream
 import kong.unirest.UnirestInstance
 import kong.unirest.json.JSONObject
 import kotlinx.coroutines.*
@@ -10,7 +11,6 @@ import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.util.*
 import java.util.stream.Collectors
-import java.util.stream.StreamSupport
 import javax.inject.Inject
 import kotlin.system.measureTimeMillis
 
@@ -27,7 +27,7 @@ class MediaRefreshService(
         private val logger = LoggerFactory.getLogger(javaClass.enclosingClass)
     }
 
-    @Scheduled(fixedRateString = "\${service.media.refresh.delay_millis}", initialDelay = 0)
+    @Scheduled(fixedDelayString = "\${service.media.refresh.delay_millis}", initialDelay = 0)
     fun refreshSources() {
         logger.info("Starting asynchronous task to refresh all sources")
         runBlocking {
@@ -79,7 +79,7 @@ class MediaRefreshService(
             .body
             .`object`
 
-    private fun getMediaFromPage(results: JSONObject, source: Source): Iterable<MediaDocument> =
+    private fun getMediaFromPage(results: JSONObject, source: Source): Iterator<MediaDocument> =
             results.getJSONArray("episodes").mapNotNull {
                 val episode = it as JSONObject
                 val url = episode.getJSONObject("play").getString("url")
@@ -105,17 +105,14 @@ class MediaRefreshService(
                             )
                     )
                 }
-            }
+            }.iterator()
 
     /**
      * Returns true if all of the documents were saved
      */
-    private fun saveNew(docs: Iterable<MediaDocument>): Boolean {
-        return StreamSupport.stream(docs.spliterator(), true)
+    private fun saveNew(docs: Iterator<MediaDocument>): Boolean {
+        return docs.stream()
                 .map { saveNew(it) }
-                // this makes sure that all parallel stream operations were completed before checking `allMatch`,
-                // which would otherwise return false on the first non-true result found even if not all entries
-                // from the original stream have been processed.
                 .collect(Collectors.toList())
                 .stream()
                 .allMatch { it == true }
