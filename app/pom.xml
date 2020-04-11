@@ -102,9 +102,11 @@
                             <goal>generate</goal>
                         </goals>
                         <configuration>
-                            <inputSpec>${project.basedir}/vendor/microsoft/cognitive_services_speech_swagger.yaml
-                            </inputSpec>
+                            <inputSpec>${project.basedir}/vendor/microsoft/cognitive_services_speech_swagger.yaml</inputSpec>
                             <language>kotlin</language>
+                            <generateApis>false</generateApis>
+                            <generateSupportingFiles>false</generateSupportingFiles>
+                            <modelPackage>com.iodice.gen.azure.speech.model</modelPackage>
                         </configuration>
                     </execution>
                 </executions>

@@ -20,6 +20,8 @@ import javax.inject.Singleton
 class Beans {
     companion object {
         const val RAW_MEDIA_CONTAINER = "RAW_MEDIA_CONTAINER"
+        const val STT_API_KEY = "STT_API_KEY"
+        const val STT_API_ENDPOINT = "STT_API_ENDPOINT"
     }
 
     // TODO: pull from KeyVault
@@ -41,6 +43,15 @@ class Beans {
     // TODO: pull from KeyVault
     @Value("\${AZ_STORAGE_CONNECTION_STRING}")
     lateinit var storageConnectionString: String
+
+    // TODO: pull from KeyVault
+    @Value("\${AZ_STT_API_KEY}")
+    lateinit var sttApiKey: String
+
+    @Value("\${AZ_STT_REGION}")
+    lateinit var sttRegion: String
+
+
 
 
     @Bean
@@ -129,4 +140,14 @@ class Beans {
                 .containerName(mediaStorageContainer)
                 .buildClient()
     }
+
+    @Bean
+    @Named(STT_API_KEY)
+    @Singleton
+    fun sttApiKey() = sttApiKey
+
+    @Bean
+    @Named(STT_API_ENDPOINT)
+    @Singleton
+    fun sttApiEndpoint() = "https://$sttRegion.cris.ai/api/speechtotext/v2.0/Transcriptions/"
 }

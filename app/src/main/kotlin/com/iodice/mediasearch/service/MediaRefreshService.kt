@@ -126,14 +126,8 @@ class MediaRefreshService(
             return false
         }
         mediaRepo.put(doc)
-        val status = IndexStatus(
-                id = null,
-                state = IndexState.NOT_STARTED,
-                resultsUrl = null
-        )
+        val status = IndexStatus(state = IndexState.NOT_STARTED)
         indexRepo.put(IndexStatusDocument(
-                id = null,
-                sourceIdIndexStatusCompositeKey = null, // repository will fix this in the PUT call
                 sourceId = doc.sourceId,
                 mediaId = doc.id!!,
                 mediaUrl = doc.data.url,
