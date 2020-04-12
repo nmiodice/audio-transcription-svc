@@ -2,6 +2,10 @@ env.intellij
 .env.intellij
 .envrc
 
+dist/
+node_modules/
+.tmp/
+
 
 HELP.md
 target/
