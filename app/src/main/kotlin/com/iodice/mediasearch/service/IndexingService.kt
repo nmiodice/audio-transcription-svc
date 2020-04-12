@@ -5,9 +5,7 @@ import com.azure.storage.blob.sas.BlobSasPermission
 import com.azure.storage.blob.sas.BlobServiceSasSignatureValues
 import com.iodice.mediasearch.client.*
 import com.iodice.mediasearch.di.Beans
-import com.iodice.mediasearch.model.IndexState
-import com.iodice.mediasearch.model.IndexStatusDocument
-import com.iodice.mediasearch.model.SourceDocument
+import com.iodice.mediasearch.model.*
 import com.iodice.mediasearch.repository.EntityRepository
 import com.iodice.mediasearch.util.stream
 import kong.unirest.UnirestInstance

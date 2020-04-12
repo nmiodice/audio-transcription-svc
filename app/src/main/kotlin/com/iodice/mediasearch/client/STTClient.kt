@@ -1,7 +1,7 @@
 package com.iodice.mediasearch.client
 
-import com.google.gson.annotations.SerializedName
 import com.iodice.mediasearch.di.Beans
+import com.iodice.mediasearch.model.*
 import kong.unirest.HttpResponse
 import kong.unirest.UnirestInstance
 import org.slf4j.LoggerFactory
@@ -9,34 +9,6 @@ import org.springframework.stereotype.Component
 import java.net.HttpURLConnection
 import javax.inject.Inject
 import javax.inject.Named
-
-class STTException(msg: String) : Exception(msg)
-
-open class STTStatus
-
-class STTSuccess(val resultsUrls: List<String>): STTStatus()
-class STTFailed(val message: String): STTStatus()
-class STTInProgress: STTStatus()
-
-data class TranscriptionDefinition(
-        val recordingsUrl: String,
-        val locale: String,
-        val name: String
-)
-
-
-enum class TranscriptionStatus {
-    @SerializedName("NotStarted") NOT_STARTED,
-    @SerializedName("Running") RUNNING,
-    @SerializedName("Succeeded") SUCCEEDED,
-    @SerializedName("Failed") FAILED,
-}
-
-data class Transcription (
-        val resultsUrls: Map<String, String>? = null,
-        val statusMessage: String? = null,
-        val status: TranscriptionStatus? = null
-)
 
 
 @Component
