@@ -2,8 +2,10 @@ package com.iodice.mediasearch.api
 
 import com.iodice.mediasearch.model.*
 import com.iodice.mediasearch.repository.EntityRepository
+import com.iodice.mediasearch.util.stream
 import org.springframework.web.bind.annotation.*
 import javax.inject.Inject
+import kotlin.streams.toList
 
 @RestController
 @RequestMapping("source")
@@ -25,6 +27,12 @@ class CrudController(
         return sourceRepo.get(sourceId, sourceId).data
     }
 
+    @GetMapping("/")
+    fun getAllSources(@PathVariable sourceId: String): List<Source> {
+        return sourceRepo.getAll().stream().map { it.data }.toList()
+    }
+
+
     @DeleteMapping("/{sourceId}")
     fun deleteSource(@PathVariable sourceId: String) {
         sourceRepo.delete(sourceId, sourceId)
@@ -44,6 +52,11 @@ class CrudController(
     @GetMapping("/{sourceId}/media/{mediaId}")
     fun getMedia(@PathVariable sourceId: String, @PathVariable mediaId: String): Media {
         return mediaRepo.get(mediaId, sourceId).data
+    }
+
+    @GetMapping("/{sourceId}/media/")
+    fun getAllMedia(@PathVariable sourceId: String): List<Media> {
+        return mediaRepo.getAllWithPartitionKey(sourceId).stream().map { it.data }.toList()
     }
 
     @DeleteMapping("/{sourceId}/media/{mediaId}")

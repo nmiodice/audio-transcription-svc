@@ -78,6 +78,14 @@ class MediaAPITest {
         assertEquals(HttpStatus.SC_OK, getResponse.status)
         JSONAssert.assertEquals(postResponse.body.toString(), getResponse.body, true);
 
+        // Step (2.5): GET all and assert the item is returned
+        val getAllResponse = Unirest.get("${Config.SERVICE_ENDPOINT_BASE}/${config.route}/$id")
+                .header("accept", "application/json")
+                .asJson()
+        assertEquals(HttpStatus.SC_OK, getResponse.status)
+        assertTrue(getAllResponse.body.toString().contains(postResponse.body.toString()));
+
+
         // Step (3): DELETE data, validate the call did not fail
         val deleteResponse = deleteForConfig(config)
         assertEquals(HttpStatus.SC_OK, deleteResponse.status)
