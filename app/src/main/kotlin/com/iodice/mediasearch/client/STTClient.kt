@@ -2,6 +2,8 @@ package com.iodice.mediasearch.client
 
 import com.iodice.mediasearch.di.Beans
 import com.iodice.mediasearch.model.*
+import com.iodice.mediasearch.util.log
+import com.iodice.mediasearch.util.throwIfStatusIsNot
 import kong.unirest.HttpResponse
 import kong.unirest.UnirestInstance
 import org.slf4j.LoggerFactory
@@ -33,12 +35,11 @@ class STTClient(
                 .header("Ocp-Apim-Subscription-Key", sttApiKey)
                 .body(request)
                 .asJson()
-
-        throwIfStatusIsNot(
-                response,
-                HttpURLConnection.HTTP_OK,
-                HttpURLConnection.HTTP_ACCEPTED,
-                HttpURLConnection.HTTP_CREATED)
+                .log(logger)
+                .throwIfStatusIsNot(
+                    HttpURLConnection.HTTP_OK,
+                    HttpURLConnection.HTTP_ACCEPTED,
+                    HttpURLConnection.HTTP_CREATED)
         return response.headers.getFirst("location")
     }
 
@@ -46,9 +47,10 @@ class STTClient(
         val callbackResponse = restClient.get(callbackUrl)
                 .header("content-type", "application/json")
                 .header("Ocp-Apim-Subscription-Key", sttApiKey)
-                .asObject(Transcription::class.java)
+                .asObject(TranscriptionReference::class.java)
+                .log(logger)
+                .throwIfStatusIsNot(HttpURLConnection.HTTP_OK)
 
-        throwIfStatusIsNot(callbackResponse, HttpURLConnection.HTTP_OK)
         val transcription = callbackResponse.body
         return when (transcription.status) {
             TranscriptionStatus.RUNNING, TranscriptionStatus.NOT_STARTED -> STTInProgress()
@@ -58,11 +60,4 @@ class STTClient(
         }
     }
 
-    private fun throwIfStatusIsNot(httpResponse: HttpResponse<out Any>, vararg statuses: Int) {
-        val status = httpResponse.status
-        val body = httpResponse.body
-        when {
-            !statuses.contains(status) -> throw STTException("STT API call failed with response $status: $body")
-        }
-    }
 }

@@ -3,6 +3,7 @@ package com.iodice.mediasearch.service
 import com.azure.storage.blob.BlobContainerClient
 import com.azure.storage.blob.sas.BlobSasPermission
 import com.azure.storage.blob.sas.BlobServiceSasSignatureValues
+import com.google.gson.Gson
 import com.iodice.mediasearch.client.*
 import com.iodice.mediasearch.di.Beans
 import com.iodice.mediasearch.model.*
@@ -12,6 +13,9 @@ import kong.unirest.UnirestInstance
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.io.InputStreamReader
 import java.time.OffsetDateTime
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
@@ -26,6 +30,7 @@ class IndexingService(
         @Inject private val indexRepo: EntityRepository<IndexStatusDocument>,
         @Inject private val restClient: UnirestInstance,
         @Inject private val sttClient: STTClient,
+        @Inject private val searchClient: SearchIndexClient,
         @Inject @Named(Beans.RAW_MEDIA_CONTAINER) private val blobClient: BlobContainerClient
 ) {
     companion object {
@@ -33,7 +38,9 @@ class IndexingService(
         @JvmStatic
         private val logger = LoggerFactory.getLogger(javaClass.enclosingClass)
 
-        private val executor = Executors.newFixedThreadPool(2)
+        private val executor = Executors.newFixedThreadPool(4)
+
+        private val gson = Gson()
     }
 
     @Scheduled(fixedDelayString = "\${service.index.refresh.delay_millis}", initialDelay = 0)
@@ -42,13 +49,18 @@ class IndexingService(
     }
 
     @Scheduled(fixedDelayString = "\${service.index.refresh.delay_millis}", initialDelay = 0)
-    fun submitSpeechToTextTask() {
-        applyToIndexesInState("submit speech to text", IndexState.CONTENT_UPLOADED, ::submitSpeechToText)
+    fun submitSTTTask() {
+        applyToIndexesInState("submit STT", IndexState.CONTENT_UPLOADED, ::submitSTT)
     }
 
     @Scheduled(fixedDelayString = "\${service.index.refresh.delay_millis}", initialDelay = 0)
-    fun checkSpeechToTextTask() {
-        applyToIndexesInState("check speech to text status", IndexState.STT_IN_PROGRESS, ::checkSpeechToText)
+    fun checkSTTTask() {
+        applyToIndexesInState("check STT status", IndexState.STT_IN_PROGRESS, ::checkSTT)
+    }
+
+    @Scheduled(fixedDelayString = "\${service.index.refresh.delay_millis}", initialDelay = 0)
+    fun indexFinishedSTTTask() {
+        applyToIndexesInState("index STT", IndexState.STT_FINISHED, ::indexFinishedSTT)
     }
 
     private fun applyToIndexesInState(
@@ -78,7 +90,7 @@ class IndexingService(
         logger.info("Finished: applying $description to entities of type ${IndexStatusDocument::class.java} in state $startingState")
     }
 
-    fun submitSpeechToText(source: SourceDocument, indexStatusDocument: IndexStatusDocument): IndexState {
+    fun submitSTT(source: SourceDocument, indexStatusDocument: IndexStatusDocument): IndexState {
         logger.info("Submitting speech to text for index ${indexStatusDocument.id}")
         return try {
             indexStatusDocument.data.sttCallbackUrl = sttClient.submitAsync(
@@ -92,7 +104,7 @@ class IndexingService(
     }
 
     fun getAccessUrl(indexStatusDocument: IndexStatusDocument): String {
-        val blobName = indexStatusDocument.data.mediaUploadUrl!!.replace(blobClient.blobContainerUrl, "").replaceFirst("/", "")
+        val blobName = blobUrlToName(indexStatusDocument.data.mediaUploadUrl!!)
         val sas = blobClient.getBlobClient(blobName)
                 .generateSas(BlobServiceSasSignatureValues(
                         OffsetDateTime.now().plusHours(10),
@@ -123,7 +135,7 @@ class IndexingService(
         }
     }
 
-    fun checkSpeechToText(source: SourceDocument, indexStatusDocument: IndexStatusDocument): IndexState? {
+    fun checkSTT(source: SourceDocument, indexStatusDocument: IndexStatusDocument): IndexState? {
         val status: STTStatus?
         try {
             status = sttClient.checkStatus(indexStatusDocument.data.sttCallbackUrl!!)
@@ -165,9 +177,29 @@ class IndexingService(
         return IndexState.STT_FINISHED
     }
 
+    fun indexFinishedSTT(source: SourceDocument, indexStatusDocument: IndexStatusDocument): IndexState? {
+        val blobName = blobUrlToName(indexStatusDocument.data.sttResultsUpload!!)
+        val sttResults = ByteArrayOutputStream().let { os ->
+            blobClient.getBlobClient(blobName).download(os)
+            val reader = InputStreamReader(ByteArrayInputStream(os.toByteArray()))
+            gson.fromJson(reader, TranscriptionResult::class.java)
+        }
+
+        return try {
+            searchClient.index(indexStatusDocument, sttResults)
+            IndexState.INDEXING_FINISHED
+        } catch (e: java.lang.Exception) {
+            IndexState.INDEXING_FAILED
+        }
+    }
+
     fun setIndexingState(indexStatusDocument: IndexStatusDocument, state: IndexState) {
         indexRepo.delete(indexStatusDocument.id!!, indexStatusDocument.sourceIdIndexStatusCompositeKey!!)
         indexStatusDocument.data.state = state
         indexRepo.put(indexStatusDocument)
     }
+
+    fun blobUrlToName(url: String) = url
+            .replace(blobClient.blobContainerUrl, "")
+            .replaceFirst("/", "")
 }

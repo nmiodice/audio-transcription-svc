@@ -12,6 +12,7 @@ class NotFoundException(msg: String) : Exception(msg)
 class InternalServerError(msg: String) : Exception(msg)
 
 
+
 interface Entity {
     var id: String?
 }
@@ -72,5 +73,7 @@ enum class IndexState {
     STT_IN_PROGRESS,
     STT_SUBMISSION_FAILED,
     STT_JOB_FAILED,
-    STT_FINISHED
+    STT_FINISHED,
+    INDEXING_FINISHED,
+    INDEXING_FAILED
 }

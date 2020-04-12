@@ -22,6 +22,9 @@ class Beans {
         const val RAW_MEDIA_CONTAINER = "RAW_MEDIA_CONTAINER"
         const val STT_API_KEY = "STT_API_KEY"
         const val STT_API_ENDPOINT = "STT_API_ENDPOINT"
+        const val SEARCH_API_KEY = "SEARCH_API_KEY"
+        const val SEARCH_API_ENDPOINT = "SEARCH_API_ENDPOINT"
+        const val SEARCH_API_INDEX = "SEARCH_API_INDEX"
     }
 
     // TODO: pull from KeyVault
@@ -51,6 +54,16 @@ class Beans {
     @Value("\${AZ_STT_REGION}")
     lateinit var sttRegion: String
 
+    // TODO: pull from KeyVault
+    @Value("\${AZ_SEARCH_API_KEY}")
+    lateinit var searchApiKey: String
+
+    // TODO: pull from KeyVault
+    @Value("\${AZ_SEARCH_API_ENDPOINT}")
+    lateinit var searchApiEndpoint: String
+
+    @Value("\${AZ_SEARCH_API_INDEX}")
+    lateinit var searchApiIndex: String
 
 
 
@@ -150,4 +163,20 @@ class Beans {
     @Named(STT_API_ENDPOINT)
     @Singleton
     fun sttApiEndpoint() = "https://$sttRegion.cris.ai/api/speechtotext/v2.0/Transcriptions/"
+
+    @Bean
+    @Named(SEARCH_API_KEY)
+    @Singleton
+    fun searchApiKey() = searchApiKey
+
+    @Bean
+    @Named(SEARCH_API_ENDPOINT)
+    @Singleton
+    fun searchApiEndpoint() = searchApiEndpoint
+
+    @Bean
+    @Named(SEARCH_API_INDEX)
+    @Singleton
+    fun searchApiIndex() = searchApiIndex
+
 }
