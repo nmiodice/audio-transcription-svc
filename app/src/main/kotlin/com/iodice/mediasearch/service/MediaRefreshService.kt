@@ -62,7 +62,7 @@ class MediaRefreshService(
                     // then we can exit early because we can safely say that all future documents will already
                     // be stored
                     if (!allWereNew && source.trackListIsSorted) {
-                        logger.info("Exiting refresh loop early for ${source.trackListEndpoint} due to tracks sorted condition")
+                        logger.debug("Exiting refresh loop early for ${source.trackListEndpoint} due to tracks sorted condition")
                         return
                     }
 

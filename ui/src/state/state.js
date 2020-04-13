@@ -13,8 +13,10 @@ const state = store({
     },
     showStore: {
         shows: {},
+        isLoading: false,
         selectedShow: null,
         async fetchShows() {
+            state.showStore.isLoading = true
             await fetch('/api/v1/source/')
                 .then((response) => {
                     if (!response.ok) {
@@ -30,8 +32,10 @@ const state = store({
 
                     state.errorStore.error = null
                     state.showStore.selectedShow = null
+                    state.showStore.isLoading = false
                 }).catch(function(error) {
                     state.errorStore.error = new ErrorContext(error.message, "fetching shows from the server")
+                    state.showStore.isLoading = false
                 });
         },
     }
