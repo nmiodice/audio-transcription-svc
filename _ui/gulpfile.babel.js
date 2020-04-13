@@ -24,6 +24,10 @@
 // You can read more about the new JavaScript features here:
 // https://babeljs.io/docs/learn-es2015/
 
+var browserify = require('browserify');
+var reactify = require('reactify');
+var watchify = require('watchify');
+
 import path from 'path';
 import gulp from 'gulp';
 import del from 'del';
@@ -87,7 +91,7 @@ gulp.task('styles', () => {
     'app/styles/**/*.scss',
     'app/styles/**/*.css'
   ])
-    .pipe($.newer('.tmp/styles'))
+    // .pipe($.newer('.tmp/styles'))
     .pipe($.sourcemaps.init())
     .pipe($.sass({
       precision: 10
@@ -106,14 +110,24 @@ gulp.task('styles', () => {
 // to enable ES2015 support remove the line `"only": "gulpfile.babel.js",` in the
 // `.babelrc` file.
 gulp.task('scripts', () =>
-    gulp.src([
-      // Note: Since we are not using useref in the scripts build pipeline,
-      //       you need to explicitly list your scripts here in the right order
-      //       to be correctly concatenated
-      './app/scripts/main.js'
-      // Other scripts
-    ])
-      .pipe($.newer('.tmp/scripts'))
+  // set up the browserify instance on a task basis
+//    gulp.src([
+//      // Note: Since we are not using useref in the scripts build pipeline,
+//      //       you need to explicitly list your scripts here in the right order
+//      //       to be correctly concatenated
+//      './app/scripts/main.js'
+//      // Other scripts
+//    ])
+      watchify(
+          browserify({
+            entries: './app/scripts/main.js',
+            debug: true,
+            // defining transforms here will avoid crashing your stream
+            transform: [reactify]
+          })
+      )
+      .bundle()
+//      .pipe($.newer('.tmp/scripts'))
       .pipe($.sourcemaps.init())
       .pipe($.babel())
       .pipe($.sourcemaps.write())

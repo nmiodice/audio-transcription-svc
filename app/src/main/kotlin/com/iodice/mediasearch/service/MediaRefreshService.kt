@@ -48,6 +48,11 @@ class MediaRefreshService(
                 logger.info("Refreshing ${source.name} with endpoint ${source.trackListEndpoint}")
                 var pageNum = 0
                 while (true) {
+                    // TEMPORARY MEASURE!!!!!!!!!! AVOIDING COSTS!!!!!
+                    // TODO: REMOVE ME!
+                    if (pageNum == 1) {
+                        return
+                    }
                     pageNum += 1
                     val pageResponse = getPage(source, pageNum)
                     val docs = getMediaFromPage(pageResponse, source)
@@ -89,7 +94,7 @@ class MediaRefreshService(
                 val title = episode.getString("title")
 
                 if (source.titleFilter != null && !title.toLowerCase().contains(source.titleFilter!!.toLowerCase())) {
-                    logger.info("Filtered `$title` due to title filter of `${source.titleFilter}`")
+                    logger.debug("Filtered `$title` due to title filter of `${source.titleFilter}`")
                     null
                 } else {
                     MediaDocument(

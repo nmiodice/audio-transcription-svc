@@ -118,7 +118,6 @@ class IndexingService(
             restClient.get(indexStatusDocument.mediaUrl)
                     .thenConsume {
                         val lengthAsString = it.headers.getFirst("Content-Length")
-                        logger.info("Found $lengthAsString bytes for index status ${indexStatusDocument.id} (source: ${source.id})")
                         val name = "${source.id}/${indexStatusDocument.id}"
                         blobClient.getBlobClient(name)
                                 .blockBlobClient
@@ -165,7 +164,6 @@ class IndexingService(
                 .header("content-type", "application/json")
                 .thenConsume {
                     val lengthAsString = it.headers.getFirst("Content-Length")
-                    logger.info("Found $lengthAsString bytes for index status ${indexStatusDocument.id} (source: ${source.id})")
                     val name = "${source.id}/${indexStatusDocument.id}/sttResults.json"
                     blobClient.getBlobClient(name)
                             .blockBlobClient
@@ -194,6 +192,7 @@ class IndexingService(
     }
 
     fun setIndexingState(indexStatusDocument: IndexStatusDocument, state: IndexState) {
+        logger.info("updating state of ${indexStatusDocument.id} from ${indexStatusDocument.data.state} to $state")
         indexRepo.delete(indexStatusDocument.id!!, indexStatusDocument.sourceIdIndexStatusCompositeKey!!)
         indexStatusDocument.data.state = state
         indexRepo.put(indexStatusDocument)

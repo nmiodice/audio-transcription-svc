@@ -28,7 +28,7 @@ class CrudController(
     }
 
     @GetMapping("/")
-    fun getAllSources(@PathVariable sourceId: String): List<Source> {
+    fun getAllSources(): List<Source> {
         return sourceRepo.getAll().stream().map { it.data }.toList()
     }
 

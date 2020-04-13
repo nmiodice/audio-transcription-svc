@@ -26,6 +26,7 @@ data class Source(
         var name: String,
         var trackListEndpoint: String,
         var trackListIsSorted: Boolean,
+        var image: String,
         var titleFilter: String? = null
 ) : Entity
 
