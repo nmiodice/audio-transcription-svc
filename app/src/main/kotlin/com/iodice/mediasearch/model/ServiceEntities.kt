@@ -27,7 +27,8 @@ data class Source(
         var trackListEndpoint: String,
         var trackListIsSorted: Boolean,
         var image: String,
-        var titleFilter: String? = null
+        var titleFilter: String? = null,
+        var homepage: String
 ) : Entity
 
 data class SourceDocument(
@@ -67,6 +68,17 @@ data class IndexStatusDocument(
         var sourceIdIndexStatusCompositeKey: String? = null
 ) : EntityDocument<IndexStatus>
 
+
+data class AnnotatedIndices(
+        var indices: List<Index>,
+        var source: Source,
+        var media: Media
+)
+
+data class AggregatedQueryResponse(
+        var aggregatedByMedia: Map<String, AnnotatedIndices>
+)
+
 enum class IndexState {
     NOT_STARTED,
     CONTENT_UPLOADED,
@@ -78,3 +90,4 @@ enum class IndexState {
     INDEXING_FINISHED,
     INDEXING_FAILED
 }
+

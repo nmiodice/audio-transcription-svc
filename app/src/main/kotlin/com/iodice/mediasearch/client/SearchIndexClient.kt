@@ -1,6 +1,5 @@
 package com.iodice.mediasearch.client
 
-import com.google.gson.Gson
 import com.iodice.mediasearch.di.Beans
 import com.iodice.mediasearch.model.*
 import com.iodice.mediasearch.util.log
@@ -9,7 +8,6 @@ import kong.unirest.UnirestInstance
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import java.net.HttpURLConnection
-import java.util.concurrent.Executors
 import javax.inject.Inject
 import javax.inject.Named
 
@@ -44,10 +42,11 @@ class SearchIndexClient(
             .flatMap {
                 it.SegmentResults
             }.mapIndexed { index, segment ->
-                Index(
+                IndexOperation(
                         action = Action.MERGE_OR_UPLOAD,
+                        id = "${indexStatusDocument.mediaId}_$index",
                         sourceId = indexStatusDocument.sourceId,
-                        mediaId = "${indexStatusDocument.mediaId}_$index",
+                        mediaId = indexStatusDocument.mediaId,
                         offset = segment.OffsetInSeconds,
                         duration = segment.DurationInSeconds,
                         content = segment.NBest[0].Display
@@ -55,4 +54,14 @@ class SearchIndexClient(
             }.let {
                SearchIndexRequest(it)
             }
+
+    fun query(query: String): SearchIndexResponse {
+        val url = "$searchApiEndpoint/indexes/$searchApiIndex/docs?api-version=2019-05-06&search=$query&\$orderby=search.score() desc"
+        return restClient.get(url)
+                .header("content-type", "application/json")
+                .header("api-key", searchApiKey)
+                .asObject(SearchIndexResponse::class.java)
+                .log(logger)
+                .body
+    }
 }

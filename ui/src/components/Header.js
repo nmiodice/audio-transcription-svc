@@ -35,7 +35,7 @@ export default view(function Header(props) {
         <div className={classes.root}>
         <AppBar position="static">
           <Toolbar>
-            <img src="favicon-32x32.png"/>
+            <img src="favicon-32x32.png" alt="logo"/>
             <Typography variant="h6" className={classes.title}>
               {props.title}
             </Typography>

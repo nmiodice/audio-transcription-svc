@@ -13,16 +13,6 @@ const useStyles = makeStyles((theme) => ({
 
 export default view(function ErrorAlert(props) {
   const classes = useStyles();
-  const [open, setOpen] = React.useState(true);
-
-  const handleClose = (event, reason) => {
-    if (reason === 'clickaway') {
-      return;
-    }
-
-    setOpen(false);
-  };
-
 
   if (props == null || props.error == null) {
       return null
@@ -30,10 +20,9 @@ export default view(function ErrorAlert(props) {
 
   return (
     <div className={classes.root}>
-      <Snackbar open={open} autoHideDuration={6000} onClose={handleClose}>
+      <Snackbar open={true}>
         <Alert
-            severity="error"
-            onClose={handleClose}>Something went wrong when {props.error.context.toLowerCase()} - {props.error.message}</Alert>
+            severity="error">Something went wrong when {props.error.context.toLowerCase()} - {props.error.message}</Alert>
       </Snackbar>
     </div>
   );
