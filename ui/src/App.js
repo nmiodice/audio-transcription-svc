@@ -11,9 +11,6 @@ import { state } from "./state/state";
 
 window.state = state;
 
-state.searchStore.query = "manitou";
-state.searchStore.executeQuery();
-
 class App extends React.Component {
   render() {
     return (

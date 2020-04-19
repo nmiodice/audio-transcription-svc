@@ -8,7 +8,7 @@ import javax.inject.Inject
 import kotlin.streams.toList
 
 @RestController
-@RequestMapping("source")
+@RequestMapping("/api/v1/source")
 class CrudController(
         @Inject var sourceRepo: EntityRepository<SourceDocument>,
         @Inject var mediaRepo: EntityRepository<MediaDocument>,

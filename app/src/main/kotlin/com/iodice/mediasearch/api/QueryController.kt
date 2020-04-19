@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.*
 import javax.inject.Inject
 
 @RestController
-@RequestMapping("query")
+@RequestMapping("/api/v1/query")
 class QueryController(
         @Inject var searchIndexService: SearchIndexService
 ) {
