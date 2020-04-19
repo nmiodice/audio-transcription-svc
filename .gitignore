@@ -9,6 +9,8 @@ node_modules/
 .tmp/
 
 
+.terraform
+
 HELP.md
 target/
 !.mvn/wrapper/maven-wrapper.jar
