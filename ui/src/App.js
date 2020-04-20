@@ -16,16 +16,16 @@ class App extends React.Component {
     return (
       <div className="App">
         <Header
-          title="Audio Search"
-          github_link="https://github.com/nmiodice/audio-transcription-svc/"
+          title="Podcast Search"
         />
         <ErrorAlert error={state.errorStore.error} />
         <SearchBar
           query={state.searchStore.query}
           queryResults={state.searchStore.queryResults}
-          placeholder="Search audio..."
+          placeholder="Search for your favorite podcast content..."
         />
         <Results
+          queryIsLoading={state.searchStore.isLoading}
           queryResults={state.searchStore.queryResults}
           query={state.searchStore.queryForLatestResults}
         />

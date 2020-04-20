@@ -21,6 +21,10 @@ const useStyles = makeStyles((theme) => ({
       display: "block",
     },
   },
+  titleLink: {
+    textDecoration: 'none',
+    color: '#FFFFFF'
+  },
   grow: {
     flexGrow: 1,
   },
@@ -33,12 +37,14 @@ export default view(function Header(props) {
     <div className={classes.root}>
       <AppBar position="static">
         <Toolbar>
-          <img src="favicon-32x32.png" alt="logo" />
+          <a href="/">
+            <img src="favicon-32x32.png" alt="logo" />
+          </a>
           <Typography variant="h6" className={classes.title}>
-            {props.title}
+            <a className={classes.titleLink} href="/">{props.title}</a>
           </Typography>
           <div className={classes.grow} />
-          <IconButton
+          {/* <IconButton
             edge="start"
             className={classes.menuButton}
             color="inherit"
@@ -46,7 +52,7 @@ export default view(function Header(props) {
             href={props.github_link}
           >
             <GitHubIcon />
-          </IconButton>
+          </IconButton> */}
         </Toolbar>
       </AppBar>
     </div>
