@@ -29,32 +29,36 @@ class SearchIndexService(
             .groupBy { String(Base64.getDecoder().decode(it.mediaId)) }
 
     fun annotateIndicesWithSource(indices: Map<String, List<Index>>): AggregatedQueryResponse {
-        val sourceMap = indices
+        val sourcesFuture = indices
                 .values
                 .flatMap { ids -> ids.map { index -> index.sourceId } }
                 .toSet()
-                .map { Callable { sourceRepo.get(it, it).data } }
-                .let { executor.invokeAll(it.toList()) }
-                .map { it.get() }
-                .map { it.id!! to it }
-                .toMap()
+                .let { Callable { sourceRepo.getAll(it) } }
+                .let { executor.submit(it) }
 
-        val mediaMap = indices
+        val mediaFuture = indices
                 .values
-                .flatMap { ids -> ids.map { index -> index.mediaId to index.sourceId } }
-                .distinctBy { it.first }
-                .map { Callable { mediaRepo.get(it.first, it.second).data } }
-                .let { executor.invokeAll(it.toList()) }
-                .map { it.get() }
-                .map { it.id!! to it }
-                .toMap()
+                .flatMap { ids -> ids.map { index -> index.mediaId } }
+                .toSet()
+                .let { Callable { mediaRepo.getAll(it) } }
+                .let { executor.submit(it) }
+
+        val sourceMap = mutableMapOf<String, SourceDocument>()
+        sourcesFuture.get().forEachRemaining {
+            sourceMap[it.id!!] = it
+        }
+
+        val mediaMap = mutableMapOf<String, MediaDocument>()
+        mediaFuture.get().forEachRemaining {
+            mediaMap[it.id!!] = it
+        }
 
         return indices
                 .map {
                     it.key to AnnotatedIndices(
                             indices = it.value,
-                            source = sourceMap[it.value[0].sourceId] ?: error("Impossible Case to Hit!"),
-                            media = mediaMap[it.value[0].mediaId] ?: error("Impossible Case to Hit!")
+                            source = sourceMap[it.value[0].sourceId]?.data ?: error("Impossible Case to Hit!"),
+                            media = mediaMap[it.value[0].mediaId]?.data ?: error("Impossible Case to Hit!")
                     )
                 }
                 .toMap()

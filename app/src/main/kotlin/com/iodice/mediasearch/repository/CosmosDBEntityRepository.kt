@@ -14,6 +14,7 @@ import com.microsoft.applicationinsights.TelemetryClient
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
+import java.lang.StringBuilder
 import java.util.*
 import kotlin.math.pow
 import kotlin.random.Random
@@ -93,6 +94,45 @@ class CosmosDBEntityRepository<T : EntityDocument<*>>(
                 }
             }
         }
+    }
+
+    override fun getAll(ids: Collection<String>): Iterator<T> {
+        if (ids.isEmpty()) {
+            val empty: List<T> = emptyList()
+            return empty.iterator()
+        }
+
+        val queryBuilder = StringBuilder()
+        val queryParams = SqlParameterList()
+
+        ids.forEachIndexed { index, id ->
+            queryBuilder.append("@id$index,")
+            queryParams.add(SqlParameter("@id$index", id))
+        }
+        val queryInPart = queryBuilder.dropLast(1)
+        val query = SqlQuerySpec("SELECT * FROM c WHERE c.id IN ($queryInPart)", queryParams)
+
+        val feedOptions = FeedOptions()
+                .setMaxDegreeOfParallelism(20)
+        return metricsClient.trackDuration("${METRICS.REPOSITORY_GET_ALL_WITH_IDS_DURATION}.${clazz.simpleName}") {
+            retry {
+                cosmosContainer.queryItems(query, feedOptions, JsonNode::class.java)
+                        .stream()
+                        .map { objectMapper.readValue(it.toString(), clazz) }
+                        .iterator()
+            }
+        }
+    }
+
+    private fun getNextQueryParam(current: String): String {
+        var lastChar = current.last()
+        if (lastChar in 'a'..'y') {
+            return current.dropLast(1) + (lastChar + 1)
+        }
+        if (lastChar == 'z') {
+            return current + 'a'
+        }
+        throw IllegalStateException("query param should only have characters between 'a' and 'z' but it was $current")
     }
 
     override fun getAll(): Iterator<T> {
