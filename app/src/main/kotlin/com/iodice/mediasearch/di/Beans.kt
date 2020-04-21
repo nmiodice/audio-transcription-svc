@@ -1,5 +1,7 @@
 package com.iodice.mediasearch.di
 
+import com.azure.cosmos.ConnectionMode
+import com.azure.cosmos.ConnectionPolicy
 import com.azure.cosmos.CosmosClient
 import com.azure.cosmos.CosmosContainer
 import com.azure.storage.blob.BlobContainerClient
@@ -76,6 +78,11 @@ class Beans {
         return CosmosClient.cosmosClientBuilder()
                 .setEndpoint(cosmosEndpoint)
                 .setKey(cosmosKey)
+                .setConnectionPolicy(
+                        ConnectionPolicy()
+                                .setConnectionMode(ConnectionMode.DIRECT)
+                                .setMaxPoolSize(1000)
+                )
                 .buildClient()
     }
 
