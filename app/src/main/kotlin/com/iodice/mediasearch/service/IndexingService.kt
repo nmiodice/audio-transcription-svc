@@ -4,7 +4,8 @@ import com.azure.storage.blob.BlobContainerClient
 import com.azure.storage.blob.sas.BlobSasPermission
 import com.azure.storage.blob.sas.BlobServiceSasSignatureValues
 import com.google.gson.Gson
-import com.iodice.mediasearch.client.*
+import com.iodice.mediasearch.client.STTClient
+import com.iodice.mediasearch.client.SearchIndexClient
 import com.iodice.mediasearch.di.Beans
 import com.iodice.mediasearch.model.*
 import com.iodice.mediasearch.repository.EntityRepository

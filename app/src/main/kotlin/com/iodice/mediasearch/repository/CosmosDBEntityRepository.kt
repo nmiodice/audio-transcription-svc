@@ -5,9 +5,12 @@ import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
+import com.iodice.mediasearch.METRICS
 import com.iodice.mediasearch.model.EntityDocument
 import com.iodice.mediasearch.model.InternalServerError
 import com.iodice.mediasearch.model.NotFoundException
+import com.iodice.mediasearch.util.trackDuration
+import com.microsoft.applicationinsights.TelemetryClient
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
@@ -20,6 +23,7 @@ import kotlin.reflect.KClass
 class CosmosDBEntityRepository<T : EntityDocument<*>>(
         private val cosmosContainer: CosmosContainer,
         private val clazz: Class<T>,
+        private var metricsClient: TelemetryClient,
         private val onBeforePut: (T) -> Unit = { _ -> Unit },
         private val objectMapper: ObjectMapper = ObjectMapper().let {
             it.registerModule(KotlinModule())
@@ -44,7 +48,9 @@ class CosmosDBEntityRepository<T : EntityDocument<*>>(
         onBeforePut(entity)
         try {
             logger.debug("Upsert for ${clazz.simpleName} with id=${entity.id}")
-            retry { cosmosContainer.upsertItem(entity) }
+            metricsClient.trackDuration("${METRICS.REPOSITORY_PUT_DURATION}.${clazz.simpleName}") {
+                retry { cosmosContainer.upsertItem(entity) }
+            }
         } catch (e: Exception) {
             logger.warn("Upsert for ${clazz.simpleName} with id=${entity.id} failed due to $e")
             throw InternalServerError("Unknown error encountered inserting entity")
@@ -67,11 +73,13 @@ class CosmosDBEntityRepository<T : EntityDocument<*>>(
             // Kotlin data classes require the following module to be registered. Because it is
             // not possible, we need this (unfortunate) workaround...
             //      https://github.com/FasterXML/jackson-module-kotlin
-            return retry {
-                val asJson = cosmosContainer
-                        .readItem(id, PartitionKey(partitionKey), JsonNode::class.java)
-                        .resource
-                objectMapper.readValue(asJson.toString(), clazz)
+            return metricsClient.trackDuration("${METRICS.REPOSITORY_GET_DURATION}.${clazz.simpleName}") {
+                retry {
+                    val asJson = cosmosContainer
+                            .readItem(id, PartitionKey(partitionKey), JsonNode::class.java)
+                            .resource
+                    objectMapper.readValue(asJson.toString(), clazz)
+                }
             }
         } catch (e: java.lang.Exception) {
             when (e) {
@@ -88,11 +96,13 @@ class CosmosDBEntityRepository<T : EntityDocument<*>>(
     }
 
     override fun getAll(): Iterator<T> {
-        return retry {
-            cosmosContainer.readAllItems(FeedOptions(), JsonNode::class.java)
-                    .stream()
-                    .map { objectMapper.readValue(it.toString(), clazz) }
-                    .iterator()
+        return metricsClient.trackDuration("${METRICS.REPOSITORY_GET_ALL_DURATION}.${clazz.simpleName}") {
+            retry {
+                cosmosContainer.readAllItems(FeedOptions(), JsonNode::class.java)
+                        .stream()
+                        .map { objectMapper.readValue(it.toString(), clazz) }
+                        .iterator()
+            }
         }
     }
 
@@ -100,15 +110,17 @@ class CosmosDBEntityRepository<T : EntityDocument<*>>(
         val query = SqlQuerySpec(
                 "SELECT * FROM c WHERE c.${getPartitionKeyPath()} = @pk",
                 SqlParameterList(SqlParameter("@pk", partitionKey)))
-        return retry {
-            // note: the cosmos client does not enable configuration of the ObjectMapper used.
-            // Kotlin data classes require the following module to be registered. Because it is
-            // not possible, we need this (unfortunate) workaround...
-            //      https://github.com/FasterXML/jackson-module-kotlin
-            cosmosContainer
-                    .queryItems(query, FeedOptions(), JsonNode::class.java)
-                    .map { objectMapper.readValue(it.toString(), clazz) }
-                    .iterator()
+        return metricsClient.trackDuration("${METRICS.REPOSITORY_GET_ALL_WITH_PK_DURATION}.${clazz.simpleName}") {
+            retry {
+                // note: the cosmos client does not enable configuration of the ObjectMapper used.
+                // Kotlin data classes require the following module to be registered. Because it is
+                // not possible, we need this (unfortunate) workaround...
+                //      https://github.com/FasterXML/jackson-module-kotlin
+                cosmosContainer
+                        .queryItems(query, FeedOptions(), JsonNode::class.java)
+                        .map { objectMapper.readValue(it.toString(), clazz) }
+                        .iterator()
+            }
         }
     }
 
@@ -128,7 +140,9 @@ class CosmosDBEntityRepository<T : EntityDocument<*>>(
 
 
     override fun delete(id: String, partitionKey: String) {
-        retry { cosmosContainer.deleteItem(id, PartitionKey(partitionKey), CosmosItemRequestOptions()) }
+        metricsClient.trackDuration("${METRICS.REPOSITORY_DELETE_DURATION}.${clazz.simpleName}") {
+            retry { cosmosContainer.deleteItem(id, PartitionKey(partitionKey), CosmosItemRequestOptions()) }
+        }
     }
 
     private fun <T> retry(
@@ -143,7 +157,9 @@ class CosmosDBEntityRepository<T : EntityDocument<*>>(
         while (attempts < maxAttempts) {
             attempts += 1
             try {
-                return logic()
+                val response = logic()
+                metricsClient.trackMetric("${METRICS.REPOSITORY_CALL_ATTEMPTS}.${clazz.simpleName}", attempts.toDouble())
+                return response
             } catch (e: Exception) {
                 when (e::class) {
                     !in retryOn -> throw e

@@ -3,6 +3,8 @@ import { makeStyles } from "@material-ui/core/styles";
 import { view } from "@risingstack/react-easy-state";
 
 import Result from "./Result";
+import CircularProgress from '@material-ui/core/CircularProgress';
+
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -18,13 +20,26 @@ const useStyles = makeStyles((theme) => ({
     transform: "translate(-50%)",
     minWidth: "400px",
   },
+  loading: {
+    margin: '40%',
+    height: '80px',
+    width: '80px',
+  },
 }));
 
 export default view(function Results(props) {
   const classes = useStyles();
 
-  if (props.queryResults == null) {
+  if (props.queryResults == null && !props.queryIsLoading) {
     return null;
+  }
+
+  if (props.queryIsLoading) {
+    return (
+      <div className={classes.root}>
+        <CircularProgress className={classes.loading}/>
+      </div>
+    )
   }
 
   if (Object.keys(props.queryResults).length === 0) {

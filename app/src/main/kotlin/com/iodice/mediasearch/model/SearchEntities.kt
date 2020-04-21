@@ -38,10 +38,13 @@ data class SearchIndexResponse(
 enum class Action {
     @SerializedName("upload")
     UPLOAD,
+
     @SerializedName("merge")
     MERGE,
+
     @SerializedName("mergeOrUpload")
     MERGE_OR_UPLOAD,
+
     @SerializedName("delete")
     DELETE,
 }

@@ -1,9 +1,12 @@
 package com.iodice.mediasearch.client
 
+import com.iodice.mediasearch.METRICS
 import com.iodice.mediasearch.di.Beans
 import com.iodice.mediasearch.model.*
 import com.iodice.mediasearch.util.log
 import com.iodice.mediasearch.util.throwIfStatusIsNot
+import com.iodice.mediasearch.util.trackDuration
+import com.microsoft.applicationinsights.TelemetryClient
 import kong.unirest.UnirestInstance
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
@@ -17,7 +20,8 @@ class SearchIndexClient(
         @Inject private val restClient: UnirestInstance,
         @Inject @Named(Beans.SEARCH_API_KEY) private val searchApiKey: String,
         @Inject @Named(Beans.SEARCH_API_ENDPOINT) private val searchApiEndpoint: String,
-        @Inject @Named(Beans.SEARCH_API_INDEX) private val searchApiIndex: String
+        @Inject @Named(Beans.SEARCH_API_INDEX) private val searchApiIndex: String,
+        @Inject var metricsClient: TelemetryClient
 ) {
 
     companion object {
@@ -52,16 +56,18 @@ class SearchIndexClient(
                         content = segment.NBest[0].Display
                 )
             }.let {
-               SearchIndexRequest(it)
+                SearchIndexRequest(it)
             }
 
     fun query(query: String): SearchIndexResponse {
         val url = "$searchApiEndpoint/indexes/$searchApiIndex/docs?api-version=2019-05-06&search=$query&\$orderby=search.score() desc"
-        return restClient.get(url)
-                .header("content-type", "application/json")
-                .header("api-key", searchApiKey)
-                .asObject(SearchIndexResponse::class.java)
-                .log(logger)
-                .body
+        return metricsClient.trackDuration(METRICS.SEARCH_CLIENT_GET_DURATION) {
+            restClient.get(url)
+                    .header("content-type", "application/json")
+                    .header("api-key", searchApiKey)
+                    .asObject(SearchIndexResponse::class.java)
+                    .log(logger)
+                    .body
+        }
     }
 }

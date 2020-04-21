@@ -12,7 +12,6 @@ class NotFoundException(msg: String) : Exception(msg)
 class InternalServerError(msg: String) : Exception(msg)
 
 
-
 interface Entity {
     var id: String?
 }

@@ -1,13 +1,12 @@
 package com.iodice.mediasearch.util
 
-import com.iodice.mediasearch.model.STTException
+import com.microsoft.applicationinsights.TelemetryClient
 import kong.unirest.HttpResponse
-import kong.unirest.UnirestInstance
 import org.slf4j.Logger
-import java.lang.Exception
 import java.util.*
 import java.util.stream.Stream
 import java.util.stream.StreamSupport
+import kotlin.system.measureTimeMillis
 
 fun <T> Iterator<T>.stream(): Stream<T> {
     return StreamSupport.stream(
@@ -28,5 +27,12 @@ fun <T> HttpResponse<T>.log(logger: Logger): HttpResponse<T> {
     val status = this.status
     logger.info("HTTP response was $status ${this.statusText}")
     return this
+}
+
+fun <T> TelemetryClient.trackDuration(metricName: String, action: () -> T): T {
+    var response: T? = null
+    val duration = measureTimeMillis { response = action() }
+    trackMetric(metricName, duration.toDouble())
+    return response!!
 }
 

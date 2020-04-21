@@ -7,8 +7,8 @@ import org.springframework.stereotype.Component
 import java.util.*
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
-import java.util.stream.Collectors
 import javax.inject.Inject
+import kotlin.streams.toList
 
 @Component
 class SearchIndexService(
@@ -17,7 +17,7 @@ class SearchIndexService(
         @Inject val mediaRepo: EntityRepository<MediaDocument>
 ) {
     companion object {
-        private val executor = Executors.newFixedThreadPool(10)
+        private val executor = Executors.newFixedThreadPool(25)
     }
 
     fun queryAggregatedByMedia(query: String): AggregatedQueryResponse {
@@ -30,22 +30,24 @@ class SearchIndexService(
             .groupBy { String(Base64.getDecoder().decode(it.mediaId)) }
 
     fun annotateIndicesWithSource(indices: Map<String, List<Index>>): AggregatedQueryResponse {
-        val sourceIDs = indices.values.flatMap { ids ->  ids.map { index -> index.sourceId } }
-        val mediaIDs = indices.values.flatMap { ids ->  ids.map { index -> index.mediaId to index.sourceId } }
+        val sourceIDs = indices
+                .values
+                .flatMap { ids -> ids.map { index -> index.sourceId } }
+                .toSet()
+        val mediaIDs = indices
+                .values
+                .flatMap { ids -> ids.map { index -> index.mediaId to index.sourceId } }
+                .toSet()
 
         val sourceIDsTasks = sourceIDs
                 .stream()
-                .parallel()
                 .map { Callable { sourceRepo.get(it, it).data } }
-                .collect(Collectors.toSet())
-                .let { executor.invokeAll(it) }
+                .let { executor.invokeAll(it.toList()) }
 
         val mediaIDsTasks = mediaIDs
                 .stream()
-                .parallel()
                 .map { Callable { mediaRepo.get(it.first, it.second).data } }
-                .collect(Collectors.toSet())
-                .let { executor.invokeAll(it) }
+                .let { executor.invokeAll(it.toList()) }
 
         val sourceMap: Map<String, Source> = sourceIDsTasks
                 .map { it.get() }
@@ -58,11 +60,13 @@ class SearchIndexService(
                 .toMap()
 
         return indices
-                .map { it.key to AnnotatedIndices(
-                        indices = it.value,
-                        source = sourceMap[it.value[0].sourceId] ?: error("Impossible Case to Hit!"),
-                        media = mediaMap[it.value[0].mediaId] ?: error("Impossible Case to Hit!")
-                )}
+                .map {
+                    it.key to AnnotatedIndices(
+                            indices = it.value,
+                            source = sourceMap[it.value[0].sourceId] ?: error("Impossible Case to Hit!"),
+                            media = mediaMap[it.value[0].mediaId] ?: error("Impossible Case to Hit!")
+                    )
+                }
                 .toMap()
                 .let { AggregatedQueryResponse(it) }
     }

@@ -4,7 +4,6 @@ import com.iodice.mediasearch.di.Beans
 import com.iodice.mediasearch.model.*
 import com.iodice.mediasearch.util.log
 import com.iodice.mediasearch.util.throwIfStatusIsNot
-import kong.unirest.HttpResponse
 import kong.unirest.UnirestInstance
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
@@ -37,9 +36,9 @@ class STTClient(
                 .asJson()
                 .log(logger)
                 .throwIfStatusIsNot(
-                    HttpURLConnection.HTTP_OK,
-                    HttpURLConnection.HTTP_ACCEPTED,
-                    HttpURLConnection.HTTP_CREATED)
+                        HttpURLConnection.HTTP_OK,
+                        HttpURLConnection.HTTP_ACCEPTED,
+                        HttpURLConnection.HTTP_CREATED)
         return response.headers.getFirst("location")
     }
 
