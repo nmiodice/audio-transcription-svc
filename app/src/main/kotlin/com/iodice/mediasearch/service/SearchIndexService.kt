@@ -8,7 +8,6 @@ import java.util.*
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 import javax.inject.Inject
-import kotlin.streams.toList
 
 @Component
 class SearchIndexService(
@@ -30,31 +29,22 @@ class SearchIndexService(
             .groupBy { String(Base64.getDecoder().decode(it.mediaId)) }
 
     fun annotateIndicesWithSource(indices: Map<String, List<Index>>): AggregatedQueryResponse {
-        val sourceIDs = indices
+        val sourceMap = indices
                 .values
                 .flatMap { ids -> ids.map { index -> index.sourceId } }
                 .toSet()
-        val mediaIDs = indices
-                .values
-                .flatMap { ids -> ids.map { index -> index.mediaId to index.sourceId } }
-                .toSet()
-
-        val sourceIDsTasks = sourceIDs
-                .stream()
                 .map { Callable { sourceRepo.get(it, it).data } }
                 .let { executor.invokeAll(it.toList()) }
-
-        val mediaIDsTasks = mediaIDs
-                .stream()
-                .map { Callable { mediaRepo.get(it.first, it.second).data } }
-                .let { executor.invokeAll(it.toList()) }
-
-        val sourceMap: Map<String, Source> = sourceIDsTasks
                 .map { it.get() }
                 .map { it.id!! to it }
                 .toMap()
 
-        val mediaMap: Map<String, Media> = mediaIDsTasks
+        val mediaMap = indices
+                .values
+                .flatMap { ids -> ids.map { index -> index.mediaId to index.sourceId } }
+                .distinctBy { it.first }
+                .map { Callable { mediaRepo.get(it.first, it.second).data } }
+                .let { executor.invokeAll(it.toList()) }
                 .map { it.get() }
                 .map { it.id!! to it }
                 .toMap()
