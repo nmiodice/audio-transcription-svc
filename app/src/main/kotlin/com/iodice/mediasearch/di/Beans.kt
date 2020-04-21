@@ -7,6 +7,7 @@ import com.azure.storage.blob.BlobContainerClientBuilder
 import com.iodice.mediasearch.model.*
 import com.iodice.mediasearch.repository.CosmosDBEntityRepository
 import com.iodice.mediasearch.repository.EntityRepository
+import com.microsoft.applicationinsights.TelemetryClient
 import kong.unirest.Config
 import kong.unirest.UnirestInstance
 import org.apache.commons.lang3.Validate
@@ -66,7 +67,6 @@ class Beans {
     lateinit var searchApiIndex: String
 
 
-
     @Bean
     @Singleton
     fun cosmosClient(): CosmosClient {
@@ -100,33 +100,35 @@ class Beans {
 
     @Bean
     @Singleton
-    fun sourceRepository(cosmosClient: CosmosClient): EntityRepository<SourceDocument> {
+    fun sourceRepository(cosmosClient: CosmosClient, metricsClient: TelemetryClient): EntityRepository<SourceDocument> {
         return CosmosDBEntityRepository(
                 cosmosContainer(
                         Source::class.simpleName!!.toLowerCase(),
                         cosmosClient,
                         SourceDocument::id.name
                 ),
-                SourceDocument::class.java
+                SourceDocument::class.java,
+                metricsClient
         )
     }
 
     @Bean
     @Singleton
-    fun mediaRepository(cosmosClient: CosmosClient): EntityRepository<MediaDocument> {
+    fun mediaRepository(cosmosClient: CosmosClient, metricsClient: TelemetryClient): EntityRepository<MediaDocument> {
         return CosmosDBEntityRepository(
                 cosmosContainer(
                         Media::class.simpleName!!.toLowerCase(),
                         cosmosClient,
                         MediaDocument::sourceId.name
                 ),
-                MediaDocument::class.java
+                MediaDocument::class.java,
+                metricsClient
         )
     }
 
     @Bean
     @Singleton
-    fun indexRepository(cosmosClient: CosmosClient): EntityRepository<IndexStatusDocument> {
+    fun indexRepository(cosmosClient: CosmosClient, metricsClient: TelemetryClient): EntityRepository<IndexStatusDocument> {
         return CosmosDBEntityRepository(
                 cosmosContainer(
                         IndexStatus::class.simpleName!!.toLowerCase(),
@@ -134,6 +136,7 @@ class Beans {
                         IndexStatusDocument::sourceIdIndexStatusCompositeKey.name
                 ),
                 IndexStatusDocument::class.java,
+                metricsClient,
                 onBeforePut = {
                     it.sourceIdIndexStatusCompositeKey = "${it.sourceId}:${it.data.state}"
                 }
