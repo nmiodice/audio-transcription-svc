@@ -9,7 +9,10 @@ import Results from "./components/Results";
 import { view } from "@risingstack/react-easy-state";
 import { state } from "./state/state";
 
-window.state = state;
+import { loadAppInsights } from './telemetry'
+
+const appInsights = loadAppInsights()
+appInsights.trackPageView();
 
 class App extends React.Component {
   render() {
