@@ -26,3 +26,5 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
       - name: Build with Maven
         run: mvn clean package -f app/
+        env:
+          REACT_APP_APPINSIGHTS_INSTRUMENTATIONKEY: ${{ secrets.REACT_APP_APPINSIGHTS_INSTRUMENTATIONKEY }}
