@@ -1,0 +1,1 @@
+mvn clean package -f app/ && docker build .
