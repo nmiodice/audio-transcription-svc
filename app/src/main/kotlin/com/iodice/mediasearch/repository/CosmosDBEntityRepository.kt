@@ -14,7 +14,6 @@ import com.microsoft.applicationinsights.TelemetryClient
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
-import java.lang.StringBuilder
 import java.util.*
 import kotlin.math.pow
 import kotlin.random.Random

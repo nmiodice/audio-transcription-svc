@@ -14,8 +14,8 @@
     </Appenders>
     <Loggers>
         <Root level="info">
-            <AppenderRef ref="Console"  />
-            <AppenderRef ref="aiAppender"  />
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="aiAppender"/>
         </Root>
     </Loggers>
 </Configuration>

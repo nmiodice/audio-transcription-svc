@@ -1,0 +1,9 @@
+*Dockerfile*
+env.intellij
+
+.git
+**/.envrc
+**/*.iml
+**/*.md
+**/node_modules
+

@@ -4,19 +4,21 @@ import com.azure.storage.blob.BlobContainerClient
 import com.azure.storage.blob.sas.BlobSasPermission
 import com.azure.storage.blob.sas.BlobServiceSasSignatureValues
 import com.google.gson.Gson
+import com.iodice.mediasearch.client.FFMPEGClient
 import com.iodice.mediasearch.client.STTClient
 import com.iodice.mediasearch.client.SearchIndexClient
 import com.iodice.mediasearch.di.Beans
 import com.iodice.mediasearch.model.*
 import com.iodice.mediasearch.repository.EntityRepository
 import com.iodice.mediasearch.util.stream
+import com.iodice.mediasearch.util.throwIfStatusIsNot
 import kong.unirest.UnirestInstance
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
-import java.io.InputStreamReader
+import java.io.*
+import java.net.HttpURLConnection
+import java.net.URLEncoder
 import java.time.OffsetDateTime
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
@@ -24,6 +26,8 @@ import java.util.stream.Collectors
 import javax.inject.Inject
 import javax.inject.Named
 
+const val AUDIO_BITRATE = 16
+const val AUDIO_SAMPLE_RATE = 16000
 
 @Component
 class IndexingService(
@@ -32,7 +36,8 @@ class IndexingService(
         @Inject private val restClient: UnirestInstance,
         @Inject private val sttClient: STTClient,
         @Inject private val searchClient: SearchIndexClient,
-        @Inject @Named(Beans.RAW_MEDIA_CONTAINER) private val blobClient: BlobContainerClient
+        @Inject @Named(Beans.RAW_MEDIA_CONTAINER) private val blobClient: BlobContainerClient,
+        @Inject private val ffmpegClient: FFMPEGClient
 ) {
     companion object {
         @Suppress("JAVA_CLASS_ON_COMPANION")
@@ -110,28 +115,49 @@ class IndexingService(
                 .generateSas(BlobServiceSasSignatureValues(
                         OffsetDateTime.now().plusHours(10),
                         BlobSasPermission().setReadPermission(true)))
-        return "${indexStatusDocument.data.mediaUploadUrl}?$sas"
+        return blobClient.blobContainerUrl + "/" + blobName + "?$sas"
     }
 
-    fun uploadMedia(source: SourceDocument, indexStatusDocument: IndexStatusDocument): IndexState {
-        logger.info("Uploading for index status ${indexStatusDocument.id} (source: ${source.id})")
-        return try {
-            restClient.get(indexStatusDocument.mediaUrl)
-                    .thenConsume {
-                        val lengthAsString = it.headers.getFirst("Content-Length")
-                        val name = "${source.id}/${indexStatusDocument.id}"
-                        blobClient.getBlobClient(name)
-                                .blockBlobClient
-                                .upload(it.content, lengthAsString.toLong(), true)
+    fun uploadMedia(source: SourceDocument, indexStatusDocument: IndexStatusDocument): IndexState? {
+        var sourceAudio: File? = null
+        var destinationAudio: File? = null
 
-                        val uploadUrl = blobClient.blobContainerUrl + "/" + name
-                        indexStatusDocument.data.mediaUploadUrl = uploadUrl
-                    }
-            logger.info("Upload complete for index status ${indexStatusDocument.id} (source: ${source.id})")
+        return try {
+            sourceAudio = File.createTempFile(indexStatusDocument.id!!, "source.mp3")
+            sourceAudio.delete() // the next line assumes the file does not yet exist!
+            sourceAudio = restClient.get(indexStatusDocument.mediaUrl)
+                    .asFile(sourceAudio.absolutePath)
+                    .throwIfStatusIsNot(HttpURLConnection.HTTP_OK)
+                    .body
+
+            destinationAudio = File.createTempFile(indexStatusDocument.id!!, "destination.wav")
+
+            logger.info("${indexStatusDocument.id}: processing audio file $sourceAudio with output $destinationAudio")
+            ffmpegClient.process(sourceAudio, destinationAudio, AUDIO_BITRATE, AUDIO_SAMPLE_RATE)
+            logger.info("${indexStatusDocument.id}: done processing audio file $sourceAudio with output $destinationAudio")
+
+            logger.info("${indexStatusDocument.id}: Uploading processed audio file to Azure Storage")
+            val blobName = "${source.id}:${indexStatusDocument.id}.wav"
+            blobClient.getBlobClient(blobName)
+                    .blockBlobClient
+                    .upload(FileInputStream(destinationAudio!!), destinationAudio.length(), true)
+            val uploadUrl = blobClient.blobContainerUrl + "/" + URLEncoder.encode(blobName, "utf-8")
+            indexStatusDocument.data.mediaUploadUrl = uploadUrl
+
+            logger.info("${indexStatusDocument.id}: Upload complete")
             IndexState.CONTENT_UPLOADED
         } catch (e: Exception) {
             logger.info("Unable to upload for index status ${indexStatusDocument.id} (source: ${source.id}), $e")
             IndexState.CONTENT_UPLOADED_ERROR
+        } finally {
+            try {
+                sourceAudio?.delete()
+            } catch (ignored: java.lang.Exception) {
+            }
+            try {
+                destinationAudio?.delete()
+            } catch (ignored: java.lang.Exception) {
+            }
         }
     }
 

@@ -25,13 +25,24 @@ jobs:
       uses: actions/setup-java@v1
       with:
         java-version: ${{ env.JAVA_VERSION }}
-    - name: Build with Maven
-      run: mvn clean package -f app/
+    - name: Build Service & UI
+      run: ${{ github.workspace }}/svc_build.sh
       env:
         REACT_APP_APPINSIGHTS_INSTRUMENTATIONKEY: ${{ secrets.REACT_APP_APPINSIGHTS_INSTRUMENTATIONKEY }}
-    - name: 'Deploy to Azure WebApp'
-      uses: azure/webapps-deploy@v2
-      with: 
-        app-name: ${{ env.AZURE_WEBAPP_NAME }}
-        publish-profile: ${{ env.AZURE_WEBAPP_PUBLISH_PROFILE }}
-        package: '${{ env.AZURE_WEBAPP_PACKAGE_PATH }}/target/*.jar'
+    - name: ACR authentication
+      uses: azure/docker-login@v1
+      with:
+        login-server: ${{ secrets.CONTAINER_REGISTRY_ENDPOINT }}
+        username: ${{ secrets.CONTAINER_REGISTRY_USERNAME }}
+        password: ${{ secrets.CONTAINER_REGISTRY_PASSWORD }}
+    - name: Docker Push to Container Registry
+      run: ${{ github.workspace }}/svc_docker_push.sh
+      env:
+        CONTAINER_REGISTRY_ENDPOINT: ${{ secrets.CONTAINER_REGISTRY_ENDPOINT }}
+
+# NOTE: Removed in favor of ACR webhooks
+#    - name: Deploy Web App
+#      uses: azure/webapps-deploy@v2
+#      with:
+#        app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
+#        images: ${{ secrets.CONTAINER_REGISTRY_ENDPOINT }}/audio-transcription-service:latest
