@@ -31,6 +31,10 @@ const useStyles = makeStyles((theme) => ({
   audioPlayer: {
     padding: "0px",
     boxShadow: "0px 0px",
+    outline: 0,
+    '& *': {
+      outline: 0
+    }
   },
 }));
 

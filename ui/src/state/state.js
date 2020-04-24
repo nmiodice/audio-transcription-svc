@@ -54,6 +54,9 @@ const state = store({
         return;
       }
       state.searchStore.isLoading = true;
+      // if the results contain the currently selected media it will auto-play
+      // unless the selection is set to null explicitly on a new query
+      state.playerStore.selected = null;
       await fetch(
         "/api/v1/query/" + encodeURIComponent(state.searchStore.query)
       )
