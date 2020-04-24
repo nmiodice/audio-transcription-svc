@@ -13,7 +13,6 @@ env:
   AZURE_WEBAPP_NAME: audio-transcription-service
   AZURE_WEBAPP_PACKAGE_PATH: ${{ github.workspace }}/app
   JAVA_VERSION: '1.8'
-  AZURE_WEBAPP_PUBLISH_PROFILE: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
 
 jobs:
   build-and-deploy:
@@ -39,10 +38,3 @@ jobs:
       run: ${{ github.workspace }}/svc_docker_push.sh
       env:
         CONTAINER_REGISTRY_ENDPOINT: ${{ secrets.CONTAINER_REGISTRY_ENDPOINT }}
-
-# NOTE: Removed in favor of ACR webhooks
-#    - name: Deploy Web App
-#      uses: azure/webapps-deploy@v2
-#      with:
-#        app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
-#        images: ${{ secrets.CONTAINER_REGISTRY_ENDPOINT }}/audio-transcription-service:latest
