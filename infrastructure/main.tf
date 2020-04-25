@@ -45,7 +45,7 @@ resource "azurerm_app_service_plan" "asp" {
 
   sku {
     tier = "Basic"
-    size = "B1"
+    size = "B2"
   }
 }
 
@@ -160,7 +160,7 @@ resource "azurerm_storage_container" "container" {
 resource "null_resource" "stt" {
   provisioner "local-exec" {
     command = format(
-      "az cognitiveservices account create -n %s -g %s --kind CognitiveServices --sku S0 -l %s --yes",
+      "az cognitiveservices account create -n %s -g %s --kind CognitiveServices --kind SpeechServices --sku S0 -l %s --yes",
       format("%s-stt", local.prefix),
       azurerm_resource_group.rg.name,
       azurerm_resource_group.rg.location
@@ -169,6 +169,7 @@ resource "null_resource" "stt" {
 }
 
 data "external" "stt_keys" {
+  depends_on = [ null_resource.stt ]
   program = [
     "az", "cognitiveservices", "account", "keys", "list",
     "-g", azurerm_resource_group.rg.name,

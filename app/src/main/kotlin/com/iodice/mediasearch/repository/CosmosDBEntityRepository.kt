@@ -23,7 +23,7 @@ import kotlin.reflect.KClass
 class CosmosDBEntityRepository<T : EntityDocument<*>>(
         private val cosmosContainer: CosmosContainer,
         private val clazz: Class<T>,
-        private var metricsClient: TelemetryClient,
+        private val metricsClient: TelemetryClient,
         private val onBeforePut: (T) -> Unit = { _ -> Unit },
         private val objectMapper: ObjectMapper = ObjectMapper().let {
             it.registerModule(KotlinModule())
