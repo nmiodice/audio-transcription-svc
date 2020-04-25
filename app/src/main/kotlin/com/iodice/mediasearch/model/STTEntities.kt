@@ -9,10 +9,29 @@ class STTSuccess(val resultsUrls: List<String>) : STTStatus()
 class STTFailed(val message: String) : STTStatus()
 class STTInProgress : STTStatus()
 
+enum class ProfanityFilterMode {
+    @SerializedName("None")
+    NONE,
+    @SerializedName("Removed")
+    REMOVED,
+    @SerializedName("Tags")
+    TAGS,
+    @SerializedName("Masked")
+    MASKED,
+}
+
+data class TranscriptionProperties(
+        @SerializedName("ProfanityFilterMode")
+        val profanityFilterMode: ProfanityFilterMode = ProfanityFilterMode.NONE,
+        @SerializedName("AddWordLevelTimestamps")
+        val wordLevelTimestamps: Boolean = true
+)
+
 data class TranscriptionDefinition(
         val recordingsUrl: String,
         val locale: String,
-        val name: String
+        val name: String,
+        val properties: TranscriptionProperties = TranscriptionProperties()
 )
 
 
@@ -52,10 +71,17 @@ data class SegmentResult(
         val RecognitionStatus: String
 )
 
+data class Word(
+        val Word: String,
+        val OffsetInSeconds: Double,
+        val DurationInSeconds: Double
+)
+
 data class NBest(
         val Confidence: Double,
         val Display: String,
         val ITN: String,
         val Lexical: String,
-        val MaskedITN: String
+        val MaskedITN: String,
+        val Words: List<Word>
 )
