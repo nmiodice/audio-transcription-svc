@@ -25,3 +25,10 @@ class METRICS {
         const val MISSING_INDEX_IDENTIFIED = "MISSING_INDEX_IDENTIFIED"
     }
 }
+
+class AUDIO {
+    companion object {
+        const val BITRATE = 16
+        const val SAMPLE_RATE = 16000
+    }
+}

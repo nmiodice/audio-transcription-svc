@@ -4,6 +4,7 @@ import com.azure.storage.blob.BlobContainerClient
 import com.azure.storage.blob.sas.BlobSasPermission
 import com.azure.storage.blob.sas.BlobServiceSasSignatureValues
 import com.google.gson.Gson
+import com.iodice.mediasearch.AUDIO
 import com.iodice.mediasearch.client.FFMPEGClient
 import com.iodice.mediasearch.client.STTClient
 import com.iodice.mediasearch.client.SearchIndexClient
@@ -26,8 +27,6 @@ import java.util.stream.Collectors
 import javax.inject.Inject
 import javax.inject.Named
 
-const val AUDIO_BITRATE = 16
-const val AUDIO_SAMPLE_RATE = 16000
 
 @Component
 class IndexingService(
@@ -37,7 +36,7 @@ class IndexingService(
         @Inject private val sttClient: STTClient,
         @Inject private val searchClient: SearchIndexClient,
         @Inject @Named(Beans.RAW_MEDIA_CONTAINER) private val blobClient: BlobContainerClient,
-        @Inject private val ffmpegClient: FFMPEGClient
+        @Inject private val ffMPEGClient: FFMPEGClient
 ) {
     companion object {
         @Suppress("JAVA_CLASS_ON_COMPANION")
@@ -133,7 +132,7 @@ class IndexingService(
             destinationAudio = File.createTempFile(indexStatusDocument.id!!, "destination.wav")
 
             logger.info("${indexStatusDocument.id}: processing audio file $sourceAudio with output $destinationAudio")
-            ffmpegClient.process(sourceAudio, destinationAudio, AUDIO_BITRATE, AUDIO_SAMPLE_RATE)
+            ffMPEGClient.process(sourceAudio, destinationAudio, AUDIO.BITRATE, AUDIO.SAMPLE_RATE)
             logger.info("${indexStatusDocument.id}: done processing audio file $sourceAudio with output $destinationAudio")
 
             logger.info("${indexStatusDocument.id}: Uploading processed audio file to Azure Storage")
