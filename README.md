@@ -1,3 +1,5 @@
+![Deploy Java Web App to Azure](https://github.com/nmiodice/audio-transcription-svc/workflows/Deploy%20Java%20Web%20App%20to%20Azure/badge.svg)
+
 ## Running the application
 
 The application can be run using the following command
