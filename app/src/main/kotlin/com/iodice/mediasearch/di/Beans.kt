@@ -68,6 +68,13 @@ class Beans {
     @Value("\${AZ_SEARCH_API_INDEX}")
     lateinit var searchApiIndex: String
 
+    @Value("\${service.media.refresh.new_doc_limit}")
+    lateinit var newDocumentLimit: Integer
+
+    @Bean
+    @Named("NEW_DOCUMENT_LIMIT")
+    fun newDocumentLimit() = newDocumentLimit
+
 
     @Bean
     @Singleton

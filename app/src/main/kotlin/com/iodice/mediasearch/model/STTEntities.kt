@@ -12,10 +12,13 @@ class STTInProgress : STTStatus()
 enum class ProfanityFilterMode {
     @SerializedName("None")
     NONE,
+
     @SerializedName("Removed")
     REMOVED,
+
     @SerializedName("Tags")
     TAGS,
+
     @SerializedName("Masked")
     MASKED,
 }

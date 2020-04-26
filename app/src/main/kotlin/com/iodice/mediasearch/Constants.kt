@@ -32,3 +32,9 @@ class AUDIO {
         const val SAMPLE_RATE = 16000
     }
 }
+
+class SOURCES {
+    companion object {
+        const val HUB_HOPPER = "https://hubhopper.com/api/podcasts"
+    }
+}
