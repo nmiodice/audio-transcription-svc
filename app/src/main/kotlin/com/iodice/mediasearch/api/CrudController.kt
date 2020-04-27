@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*
 import javax.inject.Inject
 import kotlin.streams.toList
 
-@RestController
+//@RestController
 @RequestMapping("/api/v1/source")
 class CrudController(
         @Inject var sourceRepo: EntityRepository<SourceDocument>,
