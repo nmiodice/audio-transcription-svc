@@ -1,8 +1,11 @@
 package com.iodice.mediasearch.service
 
+import com.iodice.mediasearch.METRICS
 import com.iodice.mediasearch.client.SearchIndexClient
 import com.iodice.mediasearch.model.*
 import com.iodice.mediasearch.repository.EntityRepository
+import com.microsoft.applicationinsights.TelemetryClient
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import java.util.*
 import java.util.concurrent.Callable
@@ -13,9 +16,13 @@ import javax.inject.Inject
 class SearchIndexService(
         @Inject var searchIndexClient: SearchIndexClient,
         @Inject val sourceRepo: EntityRepository<SourceDocument>,
-        @Inject val mediaRepo: EntityRepository<MediaDocument>
+        @Inject val mediaRepo: EntityRepository<MediaDocument>,
+        @Inject val metricsClient: TelemetryClient
 ) {
     companion object {
+        @Suppress("JAVA_CLASS_ON_COMPANION")
+        @JvmStatic
+        private val logger = LoggerFactory.getLogger(javaClass.enclosingClass)
         private val executor = Executors.newFixedThreadPool(25)
     }
 
@@ -54,6 +61,23 @@ class SearchIndexService(
         }
 
         return indices
+                .filter {
+                    val isMediaMissing = !mediaMap.containsKey(it.value[0].mediaId)
+                    val isSourceMissing = !sourceMap.containsKey(it.value[0].sourceId)
+
+                    metricsClient.trackMetric(METRICS.INDEX_DANGLING_SOURCE, if (isSourceMissing) 1.0 else 0.0)
+                    metricsClient.trackMetric(METRICS.INDEX_DANGLING_MEDIA, if (isMediaMissing) 1.0 else 0.0)
+
+                    when {
+                        isSourceMissing || isMediaMissing -> {
+                            logger.warn("index for ${it.key} refers source ${it.value[0].sourceId} and media ${it.value[0].mediaId}, one or both of which are missing!")
+                            false
+                        }
+                        else -> {
+                            true
+                        }
+                    }
+                }
                 .map {
                     it.key to AnnotatedIndices(
                             indices = it.value,
