@@ -35,6 +35,9 @@ class CosmosDBEntityRepository<T : EntityDocument<*>>(
         @Suppress("JAVA_CLASS_ON_COMPANION")
         @JvmStatic
         private val logger = LoggerFactory.getLogger(javaClass.enclosingClass)
+        private val DEFAULT_FEED_OPTIONS = FeedOptions()
+                .maxItemCount(-1)   // https://docs.microsoft.com/en-us/azure/cosmos-db/sql-api-query-metrics#max-item-count
+                .setMaxDegreeOfParallelism(20)
     }
 
     private var partitionKeyProperty: String? = null
@@ -110,12 +113,9 @@ class CosmosDBEntityRepository<T : EntityDocument<*>>(
         }
         val queryInPart = queryBuilder.dropLast(1)
         val query = SqlQuerySpec("SELECT * FROM c WHERE c.id IN ($queryInPart)", queryParams)
-
-        val feedOptions = FeedOptions()
-                .setMaxDegreeOfParallelism(20)
         return metricsClient.trackDuration("${METRICS.REPOSITORY_GET_ALL_WITH_IDS_DURATION}.${clazz.simpleName}") {
             retry {
-                cosmosContainer.queryItems(query, feedOptions, JsonNode::class.java)
+                cosmosContainer.queryItems(query, DEFAULT_FEED_OPTIONS, JsonNode::class.java)
                         .stream()
                         .map { objectMapper.readValue(it.toString(), clazz) }
                         .iterator()
@@ -137,7 +137,7 @@ class CosmosDBEntityRepository<T : EntityDocument<*>>(
     override fun getAll(): Iterator<T> {
         return metricsClient.trackDuration("${METRICS.REPOSITORY_GET_ALL_DURATION}.${clazz.simpleName}") {
             retry {
-                cosmosContainer.readAllItems(FeedOptions(), JsonNode::class.java)
+                cosmosContainer.readAllItems(DEFAULT_FEED_OPTIONS, JsonNode::class.java)
                         .stream()
                         .map { objectMapper.readValue(it.toString(), clazz) }
                         .iterator()
@@ -156,7 +156,7 @@ class CosmosDBEntityRepository<T : EntityDocument<*>>(
                 // not possible, we need this (unfortunate) workaround...
                 //      https://github.com/FasterXML/jackson-module-kotlin
                 cosmosContainer
-                        .queryItems(query, FeedOptions(), JsonNode::class.java)
+                        .queryItems(query, DEFAULT_FEED_OPTIONS, JsonNode::class.java)
                         .map { objectMapper.readValue(it.toString(), clazz) }
                         .iterator()
             }
