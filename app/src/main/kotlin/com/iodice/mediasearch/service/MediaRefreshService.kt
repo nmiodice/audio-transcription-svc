@@ -7,6 +7,7 @@ import com.iodice.mediasearch.util.stream
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
+import java.lang.Exception
 import javax.inject.Inject
 import javax.inject.Named
 
@@ -29,12 +30,22 @@ class MediaRefreshService(
         logger.info("Begin: refreshing source media")
         sourceRepo.getAll()
                 .stream()
-                .forEach { refreshSource(it.data) }
+                .forEach {
+                    try {
+                        refreshSource(it.data)
+                    } catch (e: Exception) {
+                        logger.warn("Unhandled exception encountered while refreshing ${it.id}: $e")
+                    }
+                }
         logger.info("Finished: refreshing source media")
     }
 
     fun refreshSource(source: Source) {
         val sourceAdapter = sourceListAdapterFactory.forSource(source)
+        if (sourceAdapter == null) {
+            logger.info("No source adapter for ${source.trackListEndpoint} (${source.id}")
+            return
+        }
         var newDocCount = 0
         sourceAdapter.queryForMedia(source)
                 .forEach {

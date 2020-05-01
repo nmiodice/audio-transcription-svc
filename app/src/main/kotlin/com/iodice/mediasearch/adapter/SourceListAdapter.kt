@@ -15,11 +15,13 @@ interface SourceListAdapter {
 class SourceListAdapterFactory(
         @Inject private val beanFactory: BeanFactory
 ) {
-    fun forSource(source: Source): SourceListAdapter {
+    fun forSource(source: Source): SourceListAdapter? {
         fun matches(s: String) = source.trackListEndpoint.toLowerCase().startsWith(s.toLowerCase())
-        return beanFactory.getBean(when {
+        val clazz = when {
             matches(SOURCES.HUB_HOPPER) -> HubHopperAdapter::class.java
-            else -> throw IllegalStateException("No source adapter found for ${source.trackListEndpoint}")
-        })
+            else -> null
+        }
+
+        return if (clazz != null) beanFactory.getBean(clazz) else null
     }
 }
