@@ -1,5 +1,17 @@
 ![Deploy Java Web App to Azure](https://github.com/nmiodice/audio-transcription-svc/workflows/Deploy%20Java%20Web%20App%20to%20Azure/badge.svg)
 
+# Audio Transcription Service
+
+This application is comprised of a backend server (written in Kotlin, built with Spring), and a front-end webapplication (written in Javascript, built with React). Together, these components enable full-text search over audio content (primarially podcasts or other spoken word audio). Think of it as Google for audio content.
+
+The backend service will periodically poll from a configured (manually seeded data in Cosmos DB) set of media sources to check new media content. When new content is found, the audio is downloaded and run through Azure Speech to Text. The transcripts are then uploaded into an Azure Search Service instance so that the full text content becomes queryable.
+
+The front-end website provides a search interface that enables users to query for audio content using key terms. For each piece of matched audio, the user is able to: click a link to view the source media; play the source media beginning at the exact point that the keywords were found in the speech to text transcript; and read the audio transcript that is relevant for the keyword search.
+
+The application was showcased on the front page of [Hacker News](https://news.ycombinator.com/item?id=23036016) in May 2020.
+
+
+
 ## Running the application
 
 The application can be run using the following command
